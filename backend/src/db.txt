@@ -1,0 +1,213 @@
+-- ===============================
+-- USER & ROLE MANAGEMENT
+-- ===============================
+DROP DATABASE IF EXISTS MediConnectDB;
+
+CREATE DATABASE MediConnectDB
+  CHARACTER SET utf8mb4
+  COLLATE utf8mb4_unicode_ci;
+
+USE MediConnectDB;
+
+
+CREATE TABLE User (
+    user_id INT AUTO_INCREMENT PRIMARY KEY,
+    email VARCHAR(100) NOT NULL UNIQUE,
+    password_hash VARCHAR(255) NOT NULL,
+    first_name VARCHAR(50),
+    last_name VARCHAR(50),
+    phone VARCHAR(20),
+    role ENUM('PATIENT','DOCTOR','NURSE','LAB_TECHNICIAN','ADMIN') NOT NULL,
+    is_active BOOLEAN DEFAULT TRUE
+);
+
+CREATE TABLE Patient (
+    patient_id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL UNIQUE,
+    insurance_number VARCHAR(50),
+    date_of_birth DATE,
+    blood_type VARCHAR(5),
+    medical_history TEXT,
+    FOREIGN KEY (user_id) REFERENCES User(user_id)
+        ON DELETE CASCADE
+);
+
+CREATE TABLE Staff (
+    staff_id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL UNIQUE,
+    department VARCHAR(100),
+    hire_date DATE,
+    is_on_duty BOOLEAN DEFAULT TRUE,
+    FOREIGN KEY (user_id) REFERENCES User(user_id)
+        ON DELETE CASCADE
+);
+
+CREATE TABLE Doctor (
+    doctor_id INT AUTO_INCREMENT PRIMARY KEY,
+    staff_id INT NOT NULL UNIQUE,
+    specialty VARCHAR(100),
+    license_number VARCHAR(50),
+    consultation_fee DECIMAL(10,2),
+    FOREIGN KEY (staff_id) REFERENCES Staff(staff_id)
+        ON DELETE CASCADE
+);
+
+CREATE TABLE Nurse (
+    nurse_id INT AUTO_INCREMENT PRIMARY KEY,
+    staff_id INT NOT NULL UNIQUE,
+    certification_level VARCHAR(100),
+    assigned_ward VARCHAR(100),
+    FOREIGN KEY (staff_id) REFERENCES Staff(staff_id)
+        ON DELETE CASCADE
+);
+
+CREATE TABLE LabTechnician (
+    technician_id INT AUTO_INCREMENT PRIMARY KEY,
+    staff_id INT NOT NULL UNIQUE,
+    certification VARCHAR(100),
+    shift VARCHAR(50),
+    FOREIGN KEY (staff_id) REFERENCES Staff(staff_id)
+        ON DELETE CASCADE
+);
+
+CREATE TABLE Laboratory (
+    lab_id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100),
+    address VARCHAR(255),
+    contact VARCHAR(50)
+);
+
+-- ===============================
+-- APPOINTMENT MANAGEMENT
+-- ===============================
+
+CREATE TABLE Appointment (
+    appointment_id INT AUTO_INCREMENT PRIMARY KEY,
+    patient_id INT NOT NULL,
+    doctor_id INT NOT NULL,
+    nurse_id INT NULL,
+    date DATETIME NOT NULL,
+    status ENUM('REQUESTED','CONFIRMED','COMPLETED','CANCELLED') DEFAULT 'REQUESTED',
+    type VARCHAR(50),
+    FOREIGN KEY (patient_id) REFERENCES Patient(patient_id),
+    FOREIGN KEY (doctor_id) REFERENCES Doctor(doctor_id),
+    FOREIGN KEY (nurse_id) REFERENCES Nurse(nurse_id)
+);
+
+-- ===============================
+-- CONSULTATION, TREATMENT, PRESCRIPTION
+-- ===============================
+
+CREATE TABLE Consultation (
+    consultation_id INT AUTO_INCREMENT PRIMARY KEY,
+    appointment_id INT NOT NULL,
+    doctor_id INT NOT NULL,
+    patient_id INT NOT NULL,
+    date DATETIME NOT NULL,
+    notes TEXT,
+    diagnosis TEXT,
+    FOREIGN KEY (appointment_id) REFERENCES Appointment(appointment_id),
+    FOREIGN KEY (doctor_id) REFERENCES Doctor(doctor_id),
+    FOREIGN KEY (patient_id) REFERENCES Patient(patient_id)
+);
+
+CREATE TABLE TreatmentPlan (
+    treatment_id INT AUTO_INCREMENT PRIMARY KEY,
+    patient_id INT NOT NULL,
+    doctor_id INT NOT NULL,
+    start_date DATE,
+    end_date DATE,
+    status ENUM('ACTIVE','COMPLETED','PAUSED') DEFAULT 'ACTIVE',
+    FOREIGN KEY (patient_id) REFERENCES Patient(patient_id),
+    FOREIGN KEY (doctor_id) REFERENCES Doctor(doctor_id)
+);
+
+CREATE TABLE Prescription (
+    prescription_id INT AUTO_INCREMENT PRIMARY KEY,
+    treatment_id INT NOT NULL,
+    medication_name VARCHAR(100),
+    dosage VARCHAR(50),
+    frequency VARCHAR(50),
+    duration_days INT,
+    FOREIGN KEY (treatment_id) REFERENCES TreatmentPlan(treatment_id)
+);
+
+-- ===============================
+-- LAB & DIAGNOSTIC MANAGEMENT
+-- ===============================
+
+CREATE TABLE LabTest (
+    test_id INT AUTO_INCREMENT PRIMARY KEY,
+    doctor_id INT NOT NULL,
+    patient_id INT NOT NULL,
+    technician_id INT NULL,
+    lab_id INT NULL,
+    test_type VARCHAR(100),
+    status VARCHAR(50),
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    result_file VARCHAR(255),
+    FOREIGN KEY (doctor_id) REFERENCES Doctor(doctor_id),
+    FOREIGN KEY (patient_id) REFERENCES Patient(patient_id),
+    FOREIGN KEY (technician_id) REFERENCES LabTechnician(technician_id),
+    FOREIGN KEY (lab_id) REFERENCES Laboratory(lab_id)
+);
+
+CREATE TABLE LabResult (
+    result_id INT AUTO_INCREMENT PRIMARY KEY,
+    test_id INT NOT NULL UNIQUE,
+    test_type VARCHAR(100),
+    result_value VARCHAR(255),
+    unit VARCHAR(50),
+    file_url VARCHAR(255),
+    date DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (test_id) REFERENCES LabTest(test_id)
+);
+
+-- ===============================
+-- COMMUNICATION & NOTIFICATION
+-- ===============================
+
+CREATE DATABASE IF NOT EXISTS MediConnectDB
+  CHARACTER SET utf8mb4
+  COLLATE utf8mb4_unicode_ci;
+
+USE MediConnectDB;
+
+
+CREATE TABLE Notification (
+    notification_id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    message TEXT,
+    type VARCHAR(50),
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    is_read BOOLEAN DEFAULT FALSE,
+    FOREIGN KEY (user_id) REFERENCES User(user_id)
+);
+
+-- ===============================
+-- REPORTING
+-- ===============================
+
+CREATE TABLE Report (
+    report_id INT AUTO_INCREMENT PRIMARY KEY,
+    patient_id INT NOT NULL,
+    doctor_id INT NULL,
+    generated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    type VARCHAR(50),
+    content TEXT,
+    FOREIGN KEY (patient_id) REFERENCES Patient(patient_id),
+    FOREIGN KEY (doctor_id) REFERENCES Doctor(doctor_id)
+);
+
+CREATE TABLE StaffAvailability (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    staff_id INT NOT NULL,
+    day_of_week ENUM('MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY','SUNDAY') NOT NULL,
+    start_time TIME NOT NULL,
+    end_time TIME NOT NULL,
+    start_date DATE NULL,
+    end_date DATE NULL,
+    is_active BOOLEAN DEFAULT TRUE,
+    is_holiday BOOLEAN DEFAULT FALSE,
+    FOREIGN KEY (staff_id) REFERENCES Staff(staff_id) ON DELETE CASCADE
+);
