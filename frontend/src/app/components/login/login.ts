@@ -30,7 +30,9 @@ public handleSubmit() {
     this.data.value
   ).subscribe({
     next: (res) => {
-      localStorage.setItem('token', res.token);
+      const payLoad = JSON.parse(atob(res.token.split('.')[1]));
+      localStorage.setItem('role', payLoad.role);
+      localStorage.setItem('email', payLoad.sub);
       
       alert("Login successful");
       this.router.navigate(['/home']);

@@ -1,11 +1,11 @@
 package com.uaic.mediconnect.controller;
 
-import com.uaic.mediconnect.entity.Pacient;
+import com.uaic.mediconnect.entity.Patient;
 import com.uaic.mediconnect.entity.Role;
 import com.uaic.mediconnect.entity.User;
 import com.uaic.mediconnect.requests.LoginRequest;
 import com.uaic.mediconnect.security.JwtUtil;
-import com.uaic.mediconnect.service.PacientService;
+import com.uaic.mediconnect.service.PatientService;
 import com.uaic.mediconnect.service.UserService;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jws;
@@ -28,7 +28,7 @@ public class AuthController {
     private UserService userService;
 
     @Autowired
-    private PacientService pacientService;
+    private PatientService patientService;
 
     @Autowired
     private JwtUtil jwtUtil;
@@ -61,7 +61,7 @@ public class AuthController {
     }
 
     @PostMapping("/complete-profile")
-    public ResponseEntity<?> completeProfile(@RequestBody Pacient pacientData,
+    public ResponseEntity<?> completeProfile(@RequestBody Patient patientData,
                                              HttpServletRequest request){
         String header = request.getHeader("Authorization");
         if(header == null || !header.startsWith("Bearer ")) {
@@ -87,12 +87,12 @@ public class AuthController {
             return ResponseEntity.status(403).body("Only patients can complete a profile");
         }
 
-        if(pacientService.findByUser(user).isPresent()){
+        if(patientService.findByUser(user).isPresent()){
             return ResponseEntity.status(400).body("Profile already completed");
         }
 
-        pacientData.setUser(user);
-        var saved = pacientService.addPacient(pacientData);
+        patientData.setUser(user);
+        var saved = patientService.addPatient(patientData);
 
         return ResponseEntity.ok(saved);
     }
