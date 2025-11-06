@@ -1,36 +1,122 @@
 package com.uaic.mediconnect.entity;
 
 import jakarta.persistence.*;
-import lombok.Data;
+
 
 @Entity
 @Table(name="User")
-@Data
 public class User {
+
+    public User() {
+
+    }
+
+    public User(String lastName, String firstName, String password, String phone, String email, Role role, StaffType staffType) {
+        this.lastName = lastName;
+        this.firstName = firstName;
+        this.password = password;
+        this.phone = phone;
+        this.email = email;
+        this.role = role;
+        this.staffType = role == Role.STAFF ? staffType : null;
+    }
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer userId;
+    private Long userId;
 
     @Column(unique = true, nullable = false)
     private String email;
 
-    @Column(nullable = false)
-    private String passwordHash;
-
-    private String firstName;
-    private String lastName;
+    @Column
     private String phone;
+
+    @Column(unique = true, nullable = false)
+    private String password;
+
+    @Column
+    private String firstName;
+
+    @Column
+    private String lastName;
+
+    @Column
+    @Enumerated(EnumType.STRING)
+    private StaffType staffType; // null for PATIENT users
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Role role;
 
-    private Boolean isActive = true;
+    public Long getUserId() {
+        return userId;
+    }
 
-    public enum Role {
-        PATIENT,
-        STAFF,
-        ADMIN
+    public void setUserId(Long userId) {
+        this.userId = userId;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
+    public String getPhone() {
+        return phone;
+    }
+
+    public void setPhone(String phone) {
+        this.phone = phone;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
+    }
+
+    public String getFirstName() {
+        return firstName;
+    }
+
+    public void setFirstName(String firstName) {
+        this.firstName = firstName;
+    }
+
+    public String getLastName() {
+        return lastName;
+    }
+
+    public void setLastName(String lastName) {
+        this.lastName = lastName;
+    }
+
+    public StaffType getStaffType() {
+        return staffType;
+    }
+
+    public void setStaffType(StaffType staffType) {
+        this.staffType = staffType;
+    }
+
+    public Role getRole() {
+        return role;
+    }
+
+    public void setRole(Role role) {
+        this.role = role;
+    }
+
+    public boolean isStaff() {
+        return role == Role.STAFF;
+    }
+
+    public StaffType getStaffTypeSafe() {
+        return isStaff() ? staffType : null;
     }
 }

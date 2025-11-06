@@ -1,12 +1,12 @@
+import { HttpClient } from '@angular/common/http';
 import { Component, signal } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
-import { Auth} from './components/auth/auth';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, Auth],
+  imports: [RouterOutlet],
   templateUrl: './app.html',
-  styleUrl: './app.css'
+  styleUrls: ['./app.css'],
 })
 export class App {
   protected readonly title = signal('frontend');
