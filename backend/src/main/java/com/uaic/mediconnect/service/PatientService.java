@@ -19,12 +19,20 @@ public class PatientService {
         return patientRepo.save(patient);
     }
 
+    public boolean existsByUser(User user) {
+        return patientRepo.findByUser(user).isPresent();
+    }
+
     public Optional<Patient> findByUserId(Long userId) {
-        return patientRepo.findByUserId(userId);
+        return patientRepo.findByUser_UserId(userId);
     }
 
     public Optional<Patient> findByUser(User user){
         return  patientRepo.findByUser(user);
+    }
+
+    public void deletePatient(Patient patient){
+        patientRepo.delete(patient);
     }
 
 

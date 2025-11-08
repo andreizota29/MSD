@@ -12,11 +12,11 @@ export class Home {
   constructor(private router: Router){}
 
   logout() {
-    localStorage.removeItem('token');
-
-    localStorage.removeItem('role');
-    localStorage.removeItem('email');
-
+    localStorage.clear();
     this.router.navigate(['/login']);
   }
+
+  editProfile() {
+  this.router.navigate(['/complete-profile'], { queryParams: { edit: 'true' } });
+}
 }

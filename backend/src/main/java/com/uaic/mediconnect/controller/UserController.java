@@ -29,4 +29,7 @@ public class UserController {
     public Boolean loginUser(@RequestBody LoginRequest loginRequest){
         return userService.loginUser(loginRequest);
     }
+
+
+
 }

@@ -1,1 +1,37 @@
-<p>complete-profile works!</p>
+<div class="profile-container">
+   <h2>{{ isEditMode ? 'Edit Your Profile' : 'Complete Your Profile' }}</h2>
+  <form [formGroup]="profileForm" (ngSubmit)="handleSubmit()">
+
+    <div class="form-group">
+      <label for="insuranceNumber">Insurance Number</label>
+      <input id="insuranceNumber" formControlName="insuranceNumber" type="text" required />
+    </div>
+
+    <div class="form-group">
+      <label for="dateOfBirth">Date of Birth</label>
+      <input id="dateOfBirth" formControlName="dateOfBirth" type="date" required />
+    </div>
+
+    <div>
+      <label for="bloodType">Blood Type</label>
+      <select id="bloodType" formControlName="bloodType" required>
+        <option value="">Select your blood type</option>
+        <option *ngFor="let type of bloodTypes" [value]="type">{{ type }}</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label for="medicalHistory">Medical History</label>
+      <textarea id="medicalHistory" formControlName="medicalHistory"></textarea>
+    </div>
+
+    <button type="submit" [disabled]="profileForm.invalid">
+      {{ isEditMode ? 'Save Changes' : 'Save' }}
+    </button>
+
+    <button *ngIf="isEditMode" type="button" (click)="goBack()">Back</button>
+    <button *ngIf="isEditMode" type="button" (click)="deleteAccount()">
+      Delete Account
+    </button>
+  </form>
+</div>

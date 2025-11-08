@@ -21,13 +21,14 @@ public class JwtUtil {
         return Keys.hmacShaKeyFor(secret.getBytes());
     }
 
-    public String generateToken(String subject, String role, Long userId){
+    public String generateToken(String subject, String role, Long userId, boolean profileCompleted){
         Date now = new Date();
         Date exp = new Date(now.getTime() + expirationMs);
         return Jwts.builder()
                 .setSubject(subject)
                 .claim("role", role)
                 .claim("userId", userId)
+                .claim("profileCompleted", profileCompleted)
                 .setIssuedAt(now)
                 .setExpiration(exp)
                 .signWith(getSigningKey(), SignatureAlgorithm.HS256)

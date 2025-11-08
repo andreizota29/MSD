@@ -24,18 +24,20 @@ export class Login {
   ) {}
 
 public handleSubmit() {
-  console.log(this.data.value); 
-  this.httpClient.post<{ token: string }>(
-    'http://localhost:5050/auth/login', 
+  this.httpClient.post<{ token: string}>(
+    'http://localhost:5050/auth/login',
     this.data.value
   ).subscribe({
     next: (res) => {
-      const payLoad = JSON.parse(atob(res.token.split('.')[1]));
-      localStorage.setItem('role', payLoad.role);
-      localStorage.setItem('email', payLoad.sub);
-      
-      alert("Login successful");
-      this.router.navigate(['/home']);
+      localStorage.setItem('token', res.token);
+      const payload = JSON.parse(atob(res.token.split('.')[1]));
+      localStorage.setItem('role', payload.role);
+      localStorage.setItem('email', payload.sub);
+      if (payload.role === 'PATIENT' && !payload.profileCompleted) {
+        this.router.navigate(['/complete-profile']);
+      } else {
+        this.router.navigate(['/home']);
+      }
     },
     error: (err) => {
       console.log(err);

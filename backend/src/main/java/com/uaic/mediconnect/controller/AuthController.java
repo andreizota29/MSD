@@ -9,6 +9,7 @@ import com.uaic.mediconnect.service.PatientService;
 import com.uaic.mediconnect.service.UserService;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jws;
+import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import org.apache.coyote.Response;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -56,15 +57,18 @@ public class AuthController {
             return ResponseEntity.status(401).body(Map.of("error", "Invalid role"));
         }
 
-        String token = jwtUtil.generateToken(user.getEmail(), user.getRole().name(), user.getUserId());
-        return ResponseEntity.ok(Map.of("token", token));
+        String token = jwtUtil.generateToken(user.getEmail(), user.getRole().name(), user.getUserId(), user.isProfileCompleted());
+
+        return ResponseEntity.ok(Map.of(
+                "token", token,
+                "profileComplete", user.isProfileCompleted()
+        ));
     }
 
     @PostMapping("/complete-profile")
-    public ResponseEntity<?> completeProfile(@RequestBody Patient patientData,
-                                             HttpServletRequest request){
+    public ResponseEntity<?> completeProfile(@RequestBody Patient patientData, HttpServletRequest request){
         String header = request.getHeader("Authorization");
-        if(header == null || !header.startsWith("Bearer ")) {
+        if(header == null || !header.startsWith("Bearer ")){
             return ResponseEntity.status(401).body("Missing or invalid Authorization header");
         }
 
@@ -78,22 +82,30 @@ public class AuthController {
         }
 
         var userOpt = userService.findByEmail(email);
-        if(userOpt.isEmpty()){
+        if(userOpt.isEmpty()) {
             return ResponseEntity.badRequest().body("User not found");
         }
-
         var user = userOpt.get();
-        if(!user.getRole().equals(Role.PATIENT)){
+        if(!user.getRole().equals(Role.PATIENT)) {
             return ResponseEntity.status(403).body("Only patients can complete a profile");
         }
 
-        if(patientService.findByUser(user).isPresent()){
-            return ResponseEntity.status(400).body("Profile already completed");
+        var patientOpt = patientService.findByUser(user);
+        if(patientOpt.isPresent()){
+            var existingPatient = patientOpt.get();
+            existingPatient.setInsuranceNumber(patientData.getInsuranceNumber());
+            existingPatient.setDateOfBirth(patientData.getDateOfBirth());
+            existingPatient.setBloodType(patientData.getBloodType());
+            existingPatient.setMedicalHistory(patientData.getMedicalHistory());
+            patientService.addPatient(existingPatient);
+        } else {
+            patientData.setUser(user);
+            patientService.addPatient(patientData);
+            user.setProfileCompleted(true);
+            userService.saveWithoutEncoding(user);
         }
+        String newToken = jwtUtil.generateToken(user.getEmail(), user.getRole().name(), user.getUserId(), user.isProfileCompleted());
 
-        patientData.setUser(user);
-        var saved = patientService.addPatient(patientData);
-
-        return ResponseEntity.ok(saved);
+        return ResponseEntity.ok(Map.of("message", "Profile completed successfully", "token", newToken));
     }
 }

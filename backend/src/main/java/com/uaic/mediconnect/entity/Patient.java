@@ -25,6 +25,17 @@ public class Patient {
     @Column(columnDefinition = "TEXT")
     private String medicalHistory;
 
+    @Column(nullable = false)
+    private String bloodType;
+
+    public String getBloodType() {
+        return bloodType;
+    }
+
+    public void setBloodType(String bloodType) {
+        this.bloodType = bloodType;
+    }
+
     public long getPatientId() {
         return patientId;
     }

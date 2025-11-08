@@ -40,6 +40,17 @@ public class User {
     @Column
     private String lastName;
 
+    @Column(nullable = false)
+    private boolean profileCompleted = false;
+
+    public boolean isProfileCompleted() {
+        return profileCompleted;
+    }
+
+    public void setProfileCompleted(boolean profileCompleted) {
+        this.profileCompleted = profileCompleted;
+    }
+
     @Column
     @Enumerated(EnumType.STRING)
     private StaffType staffType; // null for PATIENT users

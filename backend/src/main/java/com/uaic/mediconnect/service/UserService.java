@@ -49,4 +49,12 @@ public class UserService {
         return true;
 
     }
+
+    public User saveWithoutEncoding(User user) {
+        return userRepo.save(user);
+    }
+
+    public void deleteUser(User user){
+        userRepo.delete(user);
+    }
 }
