@@ -5,12 +5,14 @@ import com.uaic.mediconnect.entity.Role;
 import com.uaic.mediconnect.entity.User;
 import com.uaic.mediconnect.requests.LoginRequest;
 import com.uaic.mediconnect.security.JwtUtil;
+import com.uaic.mediconnect.service.AuthHelperService;
 import com.uaic.mediconnect.service.PatientService;
 import com.uaic.mediconnect.service.UserService;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jws;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import org.apache.coyote.Response;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.RequestEntity;
@@ -30,6 +32,9 @@ public class AuthController {
 
     @Autowired
     private PatientService patientService;
+
+    @Autowired
+    private AuthHelperService authHelper;
 
     @Autowired
     private JwtUtil jwtUtil;
@@ -57,38 +62,61 @@ public class AuthController {
             return ResponseEntity.status(401).body(Map.of("error", "Invalid role"));
         }
 
-        String token = jwtUtil.generateToken(user.getEmail(), user.getRole().name(), user.getUserId(), user.isProfileCompleted());
-
-        return ResponseEntity.ok(Map.of(
-                "token", token,
-                "profileComplete", user.isProfileCompleted()
-        ));
+        return ResponseEntity.ok(authHelper.generateAuthResponse(user));
     }
+
+//    @PostMapping("/complete-profile")
+//    public ResponseEntity<?> completeProfile(@RequestBody Patient patientData, HttpServletRequest request){
+//        String header = request.getHeader("Authorization");
+//        if(header == null || !header.startsWith("Bearer ")){
+//            return ResponseEntity.status(401).body("Missing or invalid Authorization header");
+//        }
+//
+//        String token = header.substring(7);
+//        String email;
+//        try {
+//            Jws<Claims> claims = jwtUtil.validateToken(token);
+//            email = claims.getBody().getSubject();
+//        } catch (Exception e) {
+//            return ResponseEntity.status(401).body("Invalid or expired token");
+//        }
+//
+//        var userOpt = userService.findByEmail(email);
+//        if(userOpt.isEmpty()) {
+//            return ResponseEntity.badRequest().body("User not found");
+//        }
+//        var user = userOpt.get();
+//        if(!user.getRole().equals(Role.PATIENT)) {
+//            return ResponseEntity.status(403).body("Only patients can complete a profile");
+//        }
+//
+//        var patientOpt = patientService.findByUser(user);
+//        if(patientOpt.isPresent()){
+//            var existingPatient = patientOpt.get();
+//            existingPatient.setInsuranceNumber(patientData.getInsuranceNumber());
+//            existingPatient.setDateOfBirth(patientData.getDateOfBirth());
+//            existingPatient.setBloodType(patientData.getBloodType());
+//            existingPatient.setMedicalHistory(patientData.getMedicalHistory());
+//            patientService.addPatient(existingPatient);
+//        } else {
+//            patientData.setUser(user);
+//            patientService.addPatient(patientData);
+//            user.setProfileCompleted(true);
+//            userService.saveWithoutEncoding(user);
+//        }
+//        String newToken = jwtUtil.generateToken(user.getEmail(), user.getRole().name(), user.getUserId(), user.isProfileCompleted());
+//
+//        return ResponseEntity.ok(Map.of("message", "Profile completed successfully", "token", newToken));
+//    }
 
     @PostMapping("/complete-profile")
     public ResponseEntity<?> completeProfile(@RequestBody Patient patientData, HttpServletRequest request){
-        String header = request.getHeader("Authorization");
-        if(header == null || !header.startsWith("Bearer ")){
-            return ResponseEntity.status(401).body("Missing or invalid Authorization header");
+        var userOpt = authHelper.getPatientUserFromRequest(request);
+        if(userOpt.isEmpty()){
+            return ResponseEntity.status(401).body("Invalid or unauthorized user");
         }
 
-        String token = header.substring(7);
-        String email;
-        try {
-            Jws<Claims> claims = jwtUtil.validateToken(token);
-            email = claims.getBody().getSubject();
-        } catch (Exception e) {
-            return ResponseEntity.status(401).body("Invalid or expired token");
-        }
-
-        var userOpt = userService.findByEmail(email);
-        if(userOpt.isEmpty()) {
-            return ResponseEntity.badRequest().body("User not found");
-        }
         var user = userOpt.get();
-        if(!user.getRole().equals(Role.PATIENT)) {
-            return ResponseEntity.status(403).body("Only patients can complete a profile");
-        }
 
         var patientOpt = patientService.findByUser(user);
         if(patientOpt.isPresent()){
@@ -98,14 +126,19 @@ public class AuthController {
             existingPatient.setBloodType(patientData.getBloodType());
             existingPatient.setMedicalHistory(patientData.getMedicalHistory());
             patientService.addPatient(existingPatient);
-        } else {
+        } else{
             patientData.setUser(user);
             patientService.addPatient(patientData);
             user.setProfileCompleted(true);
             userService.saveWithoutEncoding(user);
         }
-        String newToken = jwtUtil.generateToken(user.getEmail(), user.getRole().name(), user.getUserId(), user.isProfileCompleted());
-
-        return ResponseEntity.ok(Map.of("message", "Profile completed successfully", "token", newToken));
+        String newToken = jwtUtil.generateToken(
+                user.getEmail(),
+                user.getRole().name(),
+                user.getUserId(),
+                user.isProfileCompleted()
+        );
+        return ResponseEntity.ok(Map.of("message","Profile completed successfully", "token", newToken));
     }
+
 }
