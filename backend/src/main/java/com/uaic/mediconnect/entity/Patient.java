@@ -3,6 +3,7 @@ package com.uaic.mediconnect.entity;
 import jakarta.persistence.*;
 
 import java.time.LocalDate;
+import java.util.List;
 
 @Entity
 @Table(name = "patient")
@@ -27,6 +28,17 @@ public class Patient {
 
     @Column(nullable = false)
     private String bloodType;
+
+    @OneToMany(mappedBy = "patient")
+    private List<Consultation> consultations;
+
+    public List<Consultation> getConsultations() {
+        return consultations;
+    }
+
+    public void setConsultations(List<Consultation> consultations) {
+        this.consultations = consultations;
+    }
 
     public String getBloodType() {
         return bloodType;

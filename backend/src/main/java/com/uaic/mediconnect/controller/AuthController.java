@@ -65,7 +65,39 @@ public class AuthController {
         return ResponseEntity.ok(authHelper.generateAuthResponse(user));
     }
 
-//    @PostMapping("/complete-profile")
+    @PostMapping("/complete-profile")
+    public ResponseEntity<?> completeProfile(@RequestBody Patient patientData, HttpServletRequest request){
+        var userOpt = authHelper.getPatientUserFromRequest(request);
+        if(userOpt.isEmpty()){
+            return ResponseEntity.status(401).body("Invalid or unauthorized user");
+        }
+
+        var user = userOpt.get();
+
+        var patientOpt = patientService.findByUser(user);
+        if(patientOpt.isPresent()){
+            var existingPatient = patientOpt.get();
+            existingPatient.setInsuranceNumber(patientData.getInsuranceNumber());
+            existingPatient.setDateOfBirth(patientData.getDateOfBirth());
+            existingPatient.setBloodType(patientData.getBloodType());
+            existingPatient.setMedicalHistory(patientData.getMedicalHistory());
+            patientService.addPatient(existingPatient);
+        } else{
+            patientData.setUser(user);
+            patientService.addPatient(patientData);
+            user.setProfileCompleted(true);
+            userService.saveWithoutEncoding(user);
+        }
+        String newToken = jwtUtil.generateToken(
+                user.getEmail(),
+                user.getRole().name(),
+                user.getUserId(),
+                user.isProfileCompleted()
+        );
+        return ResponseEntity.ok(Map.of("message","Profile completed successfully", "token", newToken));
+    }
+
+    //    @PostMapping("/complete-profile")
 //    public ResponseEntity<?> completeProfile(@RequestBody Patient patientData, HttpServletRequest request){
 //        String header = request.getHeader("Authorization");
 //        if(header == null || !header.startsWith("Bearer ")){
@@ -108,37 +140,5 @@ public class AuthController {
 //
 //        return ResponseEntity.ok(Map.of("message", "Profile completed successfully", "token", newToken));
 //    }
-
-    @PostMapping("/complete-profile")
-    public ResponseEntity<?> completeProfile(@RequestBody Patient patientData, HttpServletRequest request){
-        var userOpt = authHelper.getPatientUserFromRequest(request);
-        if(userOpt.isEmpty()){
-            return ResponseEntity.status(401).body("Invalid or unauthorized user");
-        }
-
-        var user = userOpt.get();
-
-        var patientOpt = patientService.findByUser(user);
-        if(patientOpt.isPresent()){
-            var existingPatient = patientOpt.get();
-            existingPatient.setInsuranceNumber(patientData.getInsuranceNumber());
-            existingPatient.setDateOfBirth(patientData.getDateOfBirth());
-            existingPatient.setBloodType(patientData.getBloodType());
-            existingPatient.setMedicalHistory(patientData.getMedicalHistory());
-            patientService.addPatient(existingPatient);
-        } else{
-            patientData.setUser(user);
-            patientService.addPatient(patientData);
-            user.setProfileCompleted(true);
-            userService.saveWithoutEncoding(user);
-        }
-        String newToken = jwtUtil.generateToken(
-                user.getEmail(),
-                user.getRole().name(),
-                user.getUserId(),
-                user.isProfileCompleted()
-        );
-        return ResponseEntity.ok(Map.of("message","Profile completed successfully", "token", newToken));
-    }
 
 }
