@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Component, OnInit } from '@angular/core';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-admin-dashboard',
@@ -14,7 +15,7 @@ export class AdminDashboard implements OnInit{
   users: any[] = [];
   clinics: any[] = [];
 
-  constructor(private http: HttpClient){}
+  constructor(private http: HttpClient, private router: Router){}
 
   ngOnInit() {
 
@@ -56,6 +57,11 @@ export class AdminDashboard implements OnInit{
       console.error('Invalid token', e);
       return null;
     }
+  }
+
+  logout() {
+    localStorage.clear();
+    this.router.navigate(['/login']);
   }
 
 }

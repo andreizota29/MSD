@@ -1,6 +1,8 @@
 package com.uaic.mediconnect.entity;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -15,6 +17,7 @@ public class Patient {
 
     @OneToOne
     @JoinColumn(name = "user_id", referencedColumnName = "userId", nullable = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private User user;
 
     @Column(nullable = false, unique = true)
