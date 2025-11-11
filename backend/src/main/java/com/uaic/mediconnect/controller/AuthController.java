@@ -15,6 +15,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.apache.coyote.Response;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.RequestEntity;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -58,7 +59,7 @@ public class AuthController {
             return ResponseEntity.status(401).body(Map.of("error", "Invalid credentials"));
         }
 
-        if (user.getRole() != Role.ADMIN && user.getRole() != loginRequest.getRole()) {
+        if (user.getRole() != Role.ADMIN && user.getRole() != Role.CLINIC_ADMIN && user.getRole() != loginRequest.getRole()) {
             return ResponseEntity.status(401).body(Map.of("error", "Invalid role"));
         }
 
@@ -95,6 +96,25 @@ public class AuthController {
                 user.isProfileCompleted()
         );
         return ResponseEntity.ok(Map.of("message","Profile completed successfully", "token", newToken));
+    }
+
+    @GetMapping("/me")
+    public ResponseEntity<?> getCurrentUser(HttpServletRequest request){
+        var userOpt = authHelper.getUserFromRequest(request);
+        if(userOpt.isEmpty()){
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message","Unauthorized"));
+        }
+        var user = userOpt.get();
+
+        var response = Map.of(
+                "userId", user.getUserId(),
+                "email", user.getEmail(),
+                "firstName", user.getFirstName(),
+                "lastName", user.getLastName(),
+                "role", user.getRole().name(),
+                "profileCompleted", user.isProfileCompleted()
+        );
+        return ResponseEntity.ok(response);
     }
 
     //    @PostMapping("/complete-profile")

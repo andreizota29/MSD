@@ -7,6 +7,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import javax.swing.text.html.Option;
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -26,6 +28,7 @@ public class UserService {
     public Optional<User> findByEmail(String email) {
         return userRepo.findByEmail(email);
     }
+
 
     public  boolean checkPassword(String rawPassword, String encodedPassword) {
         return passwordEncoder.matches(rawPassword, encodedPassword);
@@ -56,5 +59,29 @@ public class UserService {
 
     public void deleteUser(User user){
         userRepo.delete(user);
+    }
+
+    public List<User> getAllUsers(){
+        return userRepo.findAll();
+    }
+
+    public void deleteUserById(Long id){
+        userRepo.deleteById(id);
+    }
+
+    public Optional<User> getUserById(Long id) {
+        return userRepo.findById(id);
+    }
+
+    public User updateUser(Long id, User updatedUser) {
+        return userRepo.findById(id)
+                .map(user -> {
+                    user.setFirstName(updatedUser.getFirstName());
+                    user.setLastName(updatedUser.getLastName());
+                    user.setEmail(updatedUser.getEmail());
+                    user.setRole(updatedUser.getRole());
+                    return userRepo.save(user);
+                })
+                .orElseThrow(() -> new RuntimeException("User not found"));
     }
 }

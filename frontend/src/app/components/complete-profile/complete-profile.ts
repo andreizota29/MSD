@@ -61,6 +61,7 @@ export class CompleteProfile implements OnInit {
 }
 
   handleSubmit() {
+    console.log('Submit button clicked');
     const token = localStorage.getItem('token');
     const headers = new HttpHeaders({ 'Authorization': `Bearer ${token}` });
     this.http.post<{ token: string }>(
@@ -77,6 +78,7 @@ export class CompleteProfile implements OnInit {
       },
       error: (err) => console.log(err)
     });
+
   }
 
   goBack() {

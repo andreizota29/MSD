@@ -31,7 +31,7 @@ public class AuthHelperService {
         String email;
         try{
             Jws<Claims> claims= jwtUtil.validateToken(token);
-            email = claims.getSignature();
+            email = claims.getBody().getSubject();
         } catch (Exception e){
             return Optional.empty();
         }

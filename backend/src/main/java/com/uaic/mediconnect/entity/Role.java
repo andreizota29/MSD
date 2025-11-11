@@ -4,4 +4,5 @@ public enum Role {
     PATIENT,
     STAFF,
     ADMIN,
+    CLINIC_ADMIN
 }

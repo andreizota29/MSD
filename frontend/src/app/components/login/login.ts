@@ -33,9 +33,14 @@ public handleSubmit() {
       const payload = JSON.parse(atob(res.token.split('.')[1]));
       localStorage.setItem('role', payload.role);
       localStorage.setItem('email', payload.sub);
-      if (payload.role === 'PATIENT' && !payload.profileCompleted) {
+
+      if(payload.role === 'ADMIN'){
+        this.router.navigate(['/admin-dashboard'])
+      }
+      else if (payload.role === 'PATIENT' && !payload.profileCompleted) {
         this.router.navigate(['/complete-profile']);
-      } else {
+      } 
+      else {
         this.router.navigate(['/home']);
       }
     },

@@ -1,0 +1,27 @@
+<div class="dashboard">
+<section>
+    <h3>Users</h3>
+    <table>
+      <tr><th>ID</th><th>Email</th><th>Role</th><th>Actions</th></tr>
+      <tr *ngFor="let u of users">
+        <td>{{u.userId}}</td>
+        <td>{{u.email}}</td>
+        <td>{{u.role}}</td>
+        <td><button (click)="deleteUser(u.userId)">Delete</button></td>
+      </tr>
+    </table>
+  </section>
+
+   <section>
+    <h3>Clinics</h3>
+    <table>
+      <tr><th>ID</th><th>Name</th><th>Address</th><th>Actions</th></tr>
+      <tr *ngFor="let c of clinics">
+        <td>{{c.clinicId}}</td>
+        <td>{{c.name}}</td>
+        <td>{{c.address}}</td>
+        <td><button (click)="deleteClinic(c.clinicId)">Delete</button></td>
+      </tr>
+    </table>
+  </section>
+  </div>
