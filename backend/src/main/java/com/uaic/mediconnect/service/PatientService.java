@@ -3,7 +3,6 @@ package com.uaic.mediconnect.service;
 import com.uaic.mediconnect.entity.Patient;
 import com.uaic.mediconnect.entity.User;
 import com.uaic.mediconnect.repository.PatientRepo;
-import com.uaic.mediconnect.repository.UserRepo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -15,8 +14,8 @@ public class PatientService {
     @Autowired
     PatientRepo patientRepo;
 
-    public Patient addPatient(Patient patient){
-        return patientRepo.save(patient);
+    public void addPatient(Patient patient){
+        patientRepo.save(patient);
     }
 
     public boolean existsByUser(User user) {

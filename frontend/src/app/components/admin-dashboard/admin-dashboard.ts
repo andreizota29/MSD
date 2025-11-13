@@ -1,62 +1,162 @@
 import { CommonModule } from '@angular/common';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Component, OnInit } from '@angular/core';
+import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-admin-dashboard',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, ReactiveFormsModule],
   templateUrl: './admin-dashboard.html',
   styleUrl: './admin-dashboard.css',
 })
-export class AdminDashboard implements OnInit{
+export class AdminDashboard implements OnInit {
 
-  users: any[] = [];
-  clinics: any[] = [];
+  departments: any[] = [];
+  services: any[] = [];
+  doctors: any[] = [];
+  timetableTemplates: string[] = [];
+  filteredServices: any[] = [];
+  selectedDepartmentId: number | null = null;
 
-  constructor(private http: HttpClient, private router: Router){}
+  addDepartmentForm = new FormGroup({
+    name: new FormControl('', Validators.required)
+  });
+
+  addServiceForm = new FormGroup({
+    departmentId: new FormControl('', Validators.required),
+    name: new FormControl('', Validators.required)
+  });
+
+  addDoctorForm = new FormGroup({
+    firstName: new FormControl('', Validators.required),
+    lastName: new FormControl('', Validators.required),
+    email: new FormControl('', [Validators.required, Validators.email]),
+    phone: new FormControl('', Validators.required),
+    password: new FormControl('', Validators.required),
+    title: new FormControl('', Validators.required),
+    departmentId: new FormControl('', Validators.required),
+    timetableTemplate: new FormControl('MON_FRI_9_18', Validators.required),
+  });
+
+  constructor(private http: HttpClient, private router: Router) { }
 
   ngOnInit() {
+    this.loadData();
+    const headers = this.getAuthHeaders();
+    this.http.get<string[]>('http://localhost:5050/admin/timetable-templates', { headers })
+      .subscribe({
+        next: (res) => this.timetableTemplates = res,
+        error: (err) => console.error(err)
+      });
+  }
 
+  onDepartmentChange() {
+  if (this.selectedDepartmentId) {
+    this.filteredServices = this.services.filter(
+      s => s.department?.id == this.selectedDepartmentId
+    );
+  } else {
+    this.filteredServices = [];
+  }
+}
+
+  private getAuthHeaders(): HttpHeaders {
     const token = localStorage.getItem('token');
-    const headers = new HttpHeaders({'Authorization': `Bearer ${token}`});
-    const loggedInUserId = this.getUserIdFromToken(token);
-    this.http.get<any[]>('http://localhost:5050/admin/users', { headers })
-      .subscribe(users => {
-        this.users = users.filter(u => u.userId !== loggedInUserId);
+    console.log(token);
+    return new HttpHeaders({ 'Authorization': `Bearer ${token}` });
+  }
+
+
+  loadData() {
+    const headers = this.getAuthHeaders();
+
+    this.http.get<any[]>('http://localhost:5050/admin/departments', { headers })
+      .subscribe({
+        next: (res) => this.departments = res,
+        error: (err) => console.log(err)
       });
 
-    this.http.get<any[]>('http://localhost:5050/admin/clinics', { headers})
-    .subscribe(clinics => this.clinics = clinics);
+    this.http.get<any[]>('http://localhost:5050/admin/services', { headers })
+      .subscribe({
+        next: (res) => this.services = res,
+        error: (err) => console.error(err)
+      });
+
+    this.http.get<any[]>('http://localhost:5050/admin/doctors', { headers })
+      .subscribe({
+        next: (res) => this.doctors = res,
+        error: (err) => console.error(err)
+      });
   }
 
-  deleteUser(id: number){
-    const token = localStorage.getItem('token');
-    const headers = new HttpHeaders({'Authorization': `Bearer ${token}`});
-
-    this.http.delete(`http://localhost:5050/admin/users/${id}`, {headers })
-    .subscribe(() => this.users = this.users.filter(u => u.userId !== id));
+  addDepartment() {
+    const headers = this.getAuthHeaders();
+    this.http.post('http://localhost:5050/admin/departments', this.addDepartmentForm.value, { headers })
+      .subscribe({
+        next: () => {
+          this.addDepartmentForm.reset();
+          this.loadData();
+        },
+        error: (err) => console.log(err)
+      });
   }
 
-  deleteClinic(id: number){
-    const token = localStorage.getItem('token');
-    const headers = new HttpHeaders({'Authorization': `Bearer ${token}`});
-
-    this.http.delete(`http://localhost:5050/admin/clinics/${id}`, {headers })
-    .subscribe(() => this.clinics = this.clinics.filter(c => c.clinicId !== id));
+  deleteDepartment(id: number) {
+    const headers = this.getAuthHeaders();
+    this.http.delete(`http://localhost:5050/admin/departments/${id}`, { headers })
+      .subscribe(() => this.departments = this.departments.filter(d => d.id !== id));
   }
 
-  private getUserIdFromToken(token: string | null): number | null {
-    if (!token) return null;
+addService() {
+  const headers = this.getAuthHeaders();
+  const payload = {
+    name: this.addServiceForm.value.name,
+    department: { id: this.addServiceForm.value.departmentId }
+  };
 
-    try {
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      return payload.userId || null;
-    } catch (e) {
-      console.error('Invalid token', e);
-      return null;
-    }
+  const dept = this.departments.find(d => d.id == this.addServiceForm.value.departmentId);
+
+  this.http.post<any>('http://localhost:5050/admin/services', payload, { headers })
+    .subscribe({
+      next: (service) => {
+        service.department = dept;
+        this.services.push(service);
+
+        if (this.selectedDepartmentId === dept?.id) {
+          this.filteredServices.push(service);
+        }
+
+        this.addServiceForm.reset();
+      },
+      error: (err) => console.error('Error adding service:', err)
+    });
+}
+
+  deleteService(id: number) {
+    const headers = this.getAuthHeaders();
+    this.http.delete(`http://localhost:5050/admin/services/${id}`, { headers })
+      .subscribe(() => this.services = this.services.filter(s => s.id !== id));
+  }
+
+  addDoctor() {
+    const headers = this.getAuthHeaders();
+    this.http.post('http://localhost:5050/admin/doctors', this.addDoctorForm.value, { headers })
+      .subscribe({
+        next: () => {
+          alert('Doctor added successfully');
+          this.addDoctorForm.reset();
+          this.loadData();
+        },
+        error: (err) => console.error(err)
+      });
+  }
+
+  deleteDoctor(id: number) {
+    const headers = this.getAuthHeaders();
+    this.http.delete(`http://localhost:5050/admin/doctors/${id}`, { headers })
+      .subscribe(() => this.doctors = this.doctors.filter(d => d.id !== id));
   }
 
   logout() {

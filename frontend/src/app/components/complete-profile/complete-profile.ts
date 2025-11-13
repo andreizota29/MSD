@@ -13,14 +13,11 @@ import { ActivatedRoute, Router } from '@angular/router';
 })
 export class CompleteProfile implements OnInit {
 
-  bloodTypes = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
   isEditMode = false;
 
   profileForm = new FormGroup({
-    insuranceNumber: new FormControl('', Validators.required),
+    cnp: new FormControl('', Validators.required),
     dateOfBirth: new FormControl('', Validators.required),
-    bloodType: new FormControl('', Validators.required),
-    medicalHistory: new FormControl('')
   });
 
   constructor(private http: HttpClient, private router: Router, private route: ActivatedRoute) { }
@@ -48,10 +45,8 @@ export class CompleteProfile implements OnInit {
         .subscribe({
           next: (patient) => {
             this.profileForm.patchValue({
-              insuranceNumber: patient.insuranceNumber,
+              cnp: patient.CNP,
               dateOfBirth: patient.dateOfBirth?.substring(0, 10),
-              bloodType: patient.bloodType,
-              medicalHistory: patient.medicalHistory
             });
           },
           error: (err) => console.error(err)

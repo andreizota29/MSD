@@ -1,14 +1,17 @@
 package com.uaic.mediconnect.controller;
 
-import com.uaic.mediconnect.entity.Clinic;
-import com.uaic.mediconnect.entity.User;
-import com.uaic.mediconnect.service.ClinicService;
+import com.uaic.mediconnect.entity.*;
+import com.uaic.mediconnect.repository.ClinicServiceRepo;
+import com.uaic.mediconnect.repository.DepartmentRepo;
+import com.uaic.mediconnect.repository.DoctorRepo;
 import com.uaic.mediconnect.service.UserService;
-import org.apache.coyote.Response;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -17,50 +20,100 @@ import java.util.Map;
 public class AdminController {
 
     @Autowired
-    private UserService userService;
+    private DepartmentRepo departmentRepo;
 
     @Autowired
-    private ClinicService clinicService;
+    private ClinicServiceRepo clinicServiceRepo;
 
-    @GetMapping("/users")
-    public ResponseEntity<?> getAllUsers(){
-        return ResponseEntity.ok(userService.getAllUsers());
+    @Autowired
+    private DoctorRepo doctorRepo;
+
+    @GetMapping("/departments")
+    public ResponseEntity<List<Department>> getAllDepartments(){
+        return ResponseEntity.ok(departmentRepo.findAll());
     }
 
-    @GetMapping("/clinics")
-    public ResponseEntity<?> getAllClinics(){
-        return ResponseEntity.ok(clinicService.getAllClinics());
+    @PostMapping("/departments")
+    public ResponseEntity<?> createDepartment(@RequestBody Department department) {
+        if (department.getName() == null || department.getName().isBlank()) {
+            return ResponseEntity.badRequest().body("Department name is required");
+        }
+        return ResponseEntity.status(HttpStatus.CREATED).body(departmentRepo.save(department));
     }
 
-    @PostMapping("/clinics")
-    public ResponseEntity<?> createClinic(@RequestBody Clinic clinic){
-        return ResponseEntity.ok(clinicService.addClinic(clinic));
+
+    @DeleteMapping("/departments/{id}")
+    public ResponseEntity<?> deleteDepartment(@PathVariable Long id) {
+        if (!departmentRepo.existsById(id)) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Department not found");
+        }
+        departmentRepo.deleteById(id);
+        return ResponseEntity.ok(Map.of("message", "Department deleted successfully"));
     }
 
-    @PostMapping("/users")
-    public ResponseEntity<?> createUser(@RequestBody User user){
-        return ResponseEntity.ok(userService.addUser(user));
+    @GetMapping("/services")
+    public ResponseEntity<List<ClinicService>> getAllServices() {
+        return ResponseEntity.ok(clinicServiceRepo.findAll());
     }
 
-    @PutMapping("/clinics/{id}")
-    public ResponseEntity<?> updateClinic(@PathVariable Long id, @RequestBody Clinic clinic){
-        return ResponseEntity.ok(clinicService.updateClinic(id, clinic));
+    @PostMapping("/services")
+    public ResponseEntity<ClinicService> createOrUpdateService(@RequestBody ClinicService serviceData) {
+        if (serviceData.getName() == null || serviceData.getName().isBlank()) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        var departmentOpt = departmentRepo.findById(serviceData.getDepartment().getId());
+        if (departmentOpt.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        }
+
+        serviceData.setDepartment(departmentOpt.get());
+        var savedService = clinicServiceRepo.save(serviceData);
+
+        // Return only the saved object
+        return ResponseEntity.status(HttpStatus.CREATED).body(savedService);
     }
 
-    @PutMapping("/users/{id}")
-    public ResponseEntity<?> updateUser(@PathVariable Long id, @RequestBody User user){
-        return ResponseEntity.ok(userService.updateUser(id, user));
+    @DeleteMapping("/services/{id}")
+    public ResponseEntity<?> deleteService(@PathVariable Long id) {
+        var serviceOpt = clinicServiceRepo.findById(id);
+        if (serviceOpt.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Service not found");
+        }
+
+        clinicServiceRepo.deleteById(id);
+        return ResponseEntity.ok(Map.of("message", "Service deleted successfully"));
     }
 
-    @DeleteMapping("/clinics/{id}")
-    public ResponseEntity<?> deleteClinic(@PathVariable Long id){
-        clinicService.deleteClinicById(id);
-        return ResponseEntity.ok(Map.of("message","Clinic deleted successfully"));
+    @GetMapping("/doctors")
+    public ResponseEntity<List<Doctor>> getAllDoctors() {
+        return ResponseEntity.ok(doctorRepo.findAll());
     }
 
-    @DeleteMapping("/users/{id}")
-    public ResponseEntity<?> deleteUser(@PathVariable Long id){
-        userService.deleteUserById(id);
-        return ResponseEntity.ok(Map.of("message","User deleted successfully"));
+    @PostMapping("/doctors")
+    public ResponseEntity<?> createDoctor(@RequestBody Doctor doctor) {
+        if (doctor.getUser() == null || doctor.getDepartment() == null) {
+            return ResponseEntity.badRequest().body("Doctor must have a user and department assigned");
+        }
+        return ResponseEntity.status(HttpStatus.CREATED).body(doctorRepo.save(doctor));
+    }
+
+    @DeleteMapping("/doctors/{id}")
+    public ResponseEntity<?> deleteDoctor(@PathVariable Long id) {
+        if (!doctorRepo.existsById(id)) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Doctor not found");
+        }
+        doctorRepo.deleteById(id);
+        return ResponseEntity.ok(Map.of("message", "Doctor deleted successfully"));
+    }
+
+
+
+    @GetMapping("/timetable-templates")
+    public ResponseEntity<List<String>> getTimetableTemplates() {
+        List<String> templates = Arrays.stream(TimetableTemplate.values())
+                .map(Enum::name)
+                .toList();
+        return ResponseEntity.ok(templates);
     }
 }

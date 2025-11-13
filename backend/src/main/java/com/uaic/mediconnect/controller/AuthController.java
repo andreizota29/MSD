@@ -59,7 +59,7 @@ public class AuthController {
             return ResponseEntity.status(401).body(Map.of("error", "Invalid credentials"));
         }
 
-        if (user.getRole() != Role.ADMIN && user.getRole() != Role.CLINIC_ADMIN && user.getRole() != loginRequest.getRole()) {
+        if (user.getRole() != Role.ADMIN && user.getRole() != loginRequest.getRole()) {
             return ResponseEntity.status(401).body(Map.of("error", "Invalid role"));
         }
 
@@ -78,10 +78,8 @@ public class AuthController {
         var patientOpt = patientService.findByUser(user);
         if(patientOpt.isPresent()){
             var existingPatient = patientOpt.get();
-            existingPatient.setInsuranceNumber(patientData.getInsuranceNumber());
+            existingPatient.setCnp(patientData.getCnp());
             existingPatient.setDateOfBirth(patientData.getDateOfBirth());
-            existingPatient.setBloodType(patientData.getBloodType());
-            existingPatient.setMedicalHistory(patientData.getMedicalHistory());
             patientService.addPatient(existingPatient);
         } else{
             patientData.setUser(user);

@@ -1,28 +1,91 @@
 <div class="dashboard">
-<section>
-    <h3>Users</h3>
+  <h2>Admin Dashboard</h2>
+
+  <section>
+    <h3>Departments</h3>
+    <form [formGroup]="addDepartmentForm" (ngSubmit)="addDepartment()">
+      <input placeholder="Department Name" formControlName="name">
+      <button type="submit" [disabled]="addDepartmentForm.invalid">Add</button>
+    </form>
+
     <table>
-      <tr><th>ID</th><th>Email</th><th>Role</th><th>Actions</th></tr>
-      <tr *ngFor="let u of users">
-        <td>{{u.userId}}</td>
-        <td>{{u.email}}</td>
-        <td>{{u.role}}</td>
-        <td><button (click)="deleteUser(u.userId)">Delete</button></td>
+      <tr>
+        <th>ID</th>
+        <th>Name</th>
+        <th>Actions</th>
+      </tr>
+      <tr *ngFor="let d of departments">
+        <td>{{d.id}}</td>
+        <td>{{d.name}}</td>
+        <td><button (click)="deleteDepartment(d.id)">Delete</button></td>
       </tr>
     </table>
   </section>
 
-   <section>
-    <h3>Clinics</h3>
+  <section>
+    <h3>Services</h3>
+    <form [formGroup]="addServiceForm" (ngSubmit)="addService()">
+      <select formControlName="departmentId">
+        <option value="">Select Department</option>
+        <option *ngFor="let d of departments" [value]="d.id">{{d.name}}</option>
+      </select>
+      <input placeholder="Service Name" formControlName="name">
+      <button type="submit" [disabled]="addServiceForm.invalid">Add</button>
+    </form>
+
     <table>
-      <tr><th>ID</th><th>Name</th><th>Address</th><th>Actions</th></tr>
-      <tr *ngFor="let c of clinics">
-        <td>{{c.clinicId}}</td>
-        <td>{{c.name}}</td>
-        <td>{{c.address}}</td>
-        <td><button (click)="deleteClinic(c.clinicId)">Delete</button></td>
+      <tr>
+        <th>ID</th>
+        <th>Service Name</th>
+        <th>Department</th>
+        <th>Actions</th>
+      </tr>
+      <tr *ngFor="let s of services">
+        <td>{{s.id}}</td>
+        <td>{{s.name}}</td>
+        <td>{{s.department?.name}}</td>
+        <td><button (click)="deleteService(s.id)">Delete</button></td>
       </tr>
     </table>
   </section>
-  </div>
+
+  <section>
+    <h3>Doctors</h3>
+    <form [formGroup]="addDoctorForm" (ngSubmit)="addDoctor()">
+      <input placeholder="First Name" formControlName="firstName">
+      <input placeholder="Last Name" formControlName="lastName">
+      <input placeholder="Email" formControlName="email">
+      <input placeholder="Phone" formControlName="phone">
+      <input placeholder="Password" formControlName="password">
+      <input placeholder="Title (e.g. Medic primar)" formControlName="title">
+      <select formControlName="departmentId">
+        <option value="">Select Department</option>
+        <option *ngFor="let d of departments" [value]="d.id">{{d.name}}</option>
+      </select>
+      <select formControlName="timetableTemplate">
+        <option value="">Select Timetable</option>
+        <option *ngFor="let t of timetableTemplates" [value]="t">{{t}}</option>
+      </select>
+      <button type="submit" [disabled]="addDoctorForm.invalid">Add Doctor</button>
+    </form>
+
+    <table>
+      <tr>
+        <th>ID</th>
+        <th>Name</th>
+        <th>Email</th>
+        <th>Department</th>
+        <th>Actions</th>
+      </tr>
+      <tr *ngFor="let doc of doctors">
+        <td>{{doc.id}}</td>
+        <td>{{doc.user.firstName}} {{doc.user.lastName}}</td>
+        <td>{{doc.user.email}}</td>
+        <td>{{doc.department?.name}}</td>
+        <td><button (click)="deleteDoctor(doc.id)">Delete</button></td>
+      </tr>
+    </table>
+  </section>
+
   <button (click)="logout()">Logout</button>
+</div>

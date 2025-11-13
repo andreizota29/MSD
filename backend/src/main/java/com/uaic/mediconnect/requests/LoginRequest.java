@@ -1,8 +1,12 @@
 package com.uaic.mediconnect.requests;
 
 import com.uaic.mediconnect.entity.Role;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.java.Log;
 
+@Setter
+@Getter
 public class LoginRequest {
 
     public LoginRequest() {
@@ -13,30 +17,6 @@ public class LoginRequest {
         this.email = email;
         this.password = password;
         this.role= role;
-    }
-
-    public String getEmail() {
-        return email;
-    }
-
-    public void setEmail(String email) {
-        this.email = email;
-    }
-
-    public String getPassword() {
-        return password;
-    }
-
-    public void setPassword(String password) {
-        this.password = password;
-    }
-
-    public Role getRole() {
-        return role;
-    }
-
-    public void setRole(Role role) {
-        this.role = role;
     }
 
     private String email;

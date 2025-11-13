@@ -7,7 +7,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import javax.swing.text.html.Option;
 import java.util.List;
 import java.util.Optional;
 
@@ -36,7 +35,7 @@ public class UserService {
 
     public Boolean loginUser(LoginRequest loginRequest) {
         Optional<User> user = userRepo.findByEmail(loginRequest.getEmail());
-        if(user == null) {
+        if(user.isEmpty()) {
             return false;
         }
 
@@ -53,8 +52,8 @@ public class UserService {
 
     }
 
-    public User saveWithoutEncoding(User user) {
-        return userRepo.save(user);
+    public void saveWithoutEncoding(User user) {
+        userRepo.save(user);
     }
 
     public void deleteUser(User user){

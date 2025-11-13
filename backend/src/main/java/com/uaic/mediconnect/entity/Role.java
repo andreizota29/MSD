@@ -2,7 +2,6 @@ package com.uaic.mediconnect.entity;
 
 public enum Role {
     PATIENT,
-    STAFF,
+    DOCTOR,
     ADMIN,
-    CLINIC_ADMIN
 }

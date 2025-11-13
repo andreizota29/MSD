@@ -32,10 +32,13 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/auth/**").permitAll()
-                        .requestMatchers("/clinics/addClinic").hasAnyRole("ADMIN")
+                        .requestMatchers("/auth/login", "/auth/register").permitAll()
+                        .requestMatchers("/auth/complete-profile").hasRole("PATIENT")
                         .requestMatchers("/admin/**").hasRole("ADMIN")
-                        .requestMatchers("/home/**").hasAnyRole("PATIENT", "STAFF", "ADMIN")
+                        .requestMatchers("/doctor/**").hasRole("DOCTOR")
+                        .requestMatchers("/patient/**").hasRole("PATIENT")
+                        .requestMatchers("/appointments/**").hasAnyRole("DOCTOR", "PATIENT")
+                        .requestMatchers("/home/**").hasAnyRole("PATIENT", "DOCTOR", "ADMIN")
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtFilter, org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter.class);

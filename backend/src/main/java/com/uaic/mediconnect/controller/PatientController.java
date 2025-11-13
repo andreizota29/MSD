@@ -46,10 +46,8 @@ public class PatientController {
         }
         var patient = patientOpt.get();
         Map<String, Object> response = Map.of(
-                "insuranceNumber", patient.getInsuranceNumber(),
-                "dateOfBirth", patient.getDateOfBirth().toString(),
-                "bloodType", patient.getBloodType(),
-                "medicalHistory", patient.getMedicalHistory()
+                "CNP", patient.getCnp(),
+                "dateOfBirth", patient.getDateOfBirth().toString()
         );
 
         return ResponseEntity.ok(response);
