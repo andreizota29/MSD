@@ -1,7 +1,9 @@
 package com.uaic.mediconnect.entity;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIdentityInfo;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.fasterxml.jackson.annotation.ObjectIdGenerators;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -10,6 +12,7 @@ import lombok.Setter;
 @Table(name="clinic_service")
 @Getter
 @Setter
+@JsonIdentityInfo(generator = ObjectIdGenerators.PropertyGenerator.class, property = "id")
 public class ClinicService {
 
     @Id
@@ -21,6 +24,5 @@ public class ClinicService {
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "department_id")
-    @JsonBackReference
     private Department department;
 }

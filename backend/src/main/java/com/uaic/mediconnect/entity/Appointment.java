@@ -15,12 +15,16 @@ public class Appointment {
     private Long id;
 
     @ManyToOne
-    @JoinColumn(name = "doctor_id", nullable = false)
+    @JoinColumn(name = "doctor_id")
     private Doctor doctor;
 
     @ManyToOne
     @JoinColumn(name = "patient_id", nullable = false)
     private Patient patient;
+
+    @ManyToOne
+    @JoinColumn(name = "service_id", nullable = false)
+    private ClinicService service;
 
     private LocalDateTime appointmentTime;
 

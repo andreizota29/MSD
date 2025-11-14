@@ -16,7 +16,7 @@ export class Login {
   public data = new FormGroup({
     email : new FormControl('',[Validators.required]),
     password: new FormControl('',[Validators.required]),
-    role: new FormControl('PATIENT',[Validators.required])
+    role: new FormControl('',[Validators.required])
   });
 
   constructor(private httpClient: HttpClient,

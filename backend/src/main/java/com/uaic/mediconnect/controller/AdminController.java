@@ -4,10 +4,12 @@ import com.uaic.mediconnect.entity.*;
 import com.uaic.mediconnect.repository.ClinicServiceRepo;
 import com.uaic.mediconnect.repository.DepartmentRepo;
 import com.uaic.mediconnect.repository.DoctorRepo;
+import com.uaic.mediconnect.repository.UserRepo;
 import com.uaic.mediconnect.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Arrays;
@@ -28,12 +30,18 @@ public class AdminController {
     @Autowired
     private DoctorRepo doctorRepo;
 
+    @Autowired
+    private UserRepo userRepo;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
     @GetMapping("/departments")
     public ResponseEntity<List<Department>> getAllDepartments(){
         return ResponseEntity.ok(departmentRepo.findAll());
     }
 
-    @PostMapping("/departments")
+    @PostMapping(value = "/departments", consumes = "application/json", produces = "application/json")
     public ResponseEntity<?> createDepartment(@RequestBody Department department) {
         if (department.getName() == null || department.getName().isBlank()) {
             return ResponseEntity.badRequest().body("Department name is required");
@@ -56,7 +64,7 @@ public class AdminController {
         return ResponseEntity.ok(clinicServiceRepo.findAll());
     }
 
-    @PostMapping("/services")
+    @PostMapping(value = "/services", consumes = "application/json", produces = "application/json")
     public ResponseEntity<ClinicService> createOrUpdateService(@RequestBody ClinicService serviceData) {
         if (serviceData.getName() == null || serviceData.getName().isBlank()) {
             return ResponseEntity.badRequest().build();
@@ -95,7 +103,15 @@ public class AdminController {
         if (doctor.getUser() == null || doctor.getDepartment() == null) {
             return ResponseEntity.badRequest().body("Doctor must have a user and department assigned");
         }
-        return ResponseEntity.status(HttpStatus.CREATED).body(doctorRepo.save(doctor));
+
+        doctor.getUser().setRole(Role.DOCTOR);
+        doctor.getUser().setPassword(passwordEncoder.encode(doctor.getUser().getPassword()));
+
+        User savedUser = userRepo.save(doctor.getUser());
+        doctor.setUser(savedUser);
+
+        Doctor savedDoctor = doctorRepo.save(doctor);
+        return ResponseEntity.status(HttpStatus.CREATED).body(savedDoctor);
     }
 
     @DeleteMapping("/doctors/{id}")

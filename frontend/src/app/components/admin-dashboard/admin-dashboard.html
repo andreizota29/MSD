@@ -25,7 +25,7 @@
   <section>
     <h3>Services</h3>
     <form [formGroup]="addServiceForm" (ngSubmit)="addService()">
-      <select formControlName="departmentId">
+      <select formControlName="departmentId" (change)="onDepartmentChange()">
         <option value="">Select Department</option>
         <option *ngFor="let d of departments" [value]="d.id">{{d.name}}</option>
       </select>
@@ -40,7 +40,7 @@
         <th>Department</th>
         <th>Actions</th>
       </tr>
-      <tr *ngFor="let s of services">
+      <tr *ngFor="let s of filteredServices">
         <td>{{s.id}}</td>
         <td>{{s.name}}</td>
         <td>{{s.department?.name}}</td>
