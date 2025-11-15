@@ -37,6 +37,9 @@ public handleSubmit() {
       if(payload.role === 'ADMIN'){
         this.router.navigate(['/admin-dashboard'])
       }
+      else if(payload.role === 'DOCTOR'){
+        this.router.navigate(['/doctor-dashboard']);
+      }
       else if (payload.role === 'PATIENT' && !payload.profileCompleted) {
         this.router.navigate(['/complete-profile']);
       } 

@@ -30,4 +30,5 @@ public class DoctorService {
     public void deleteDoctor(Long id){
         doctorRepo.deleteById(id);
     }
+
 }

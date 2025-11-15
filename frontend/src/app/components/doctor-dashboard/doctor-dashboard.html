@@ -1,0 +1,23 @@
+<div class="dashboard">
+  <h2>Doctor Dashboard</h2>
+
+  <section>
+    <h3>My Appointments</h3>
+    <table>
+      <tr>
+        <th>Patient</th>
+        <th>Service</th>
+        <th>Date & Time</th>
+        <th>Status</th>
+      </tr>
+      <tr *ngFor="let a of appointments">
+        <td>{{a.patient.user.firstName}} {{a.patient.user.lastName}}</td>
+        <td>{{a.service.name}}</td>
+        <td>{{a.dateTime | date:'short'}}</td>
+        <td>{{a.status}}</td>
+      </tr>
+    </table>
+  </section>
+
+  <button (click)="logout()">Logout</button>
+</div>

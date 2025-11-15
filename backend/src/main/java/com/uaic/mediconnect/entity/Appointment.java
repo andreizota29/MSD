@@ -26,7 +26,9 @@ public class Appointment {
     @JoinColumn(name = "service_id", nullable = false)
     private ClinicService service;
 
-    private LocalDateTime appointmentTime;
+    @ManyToOne
+    @JoinColumn(name = "doctor_schedule_id", nullable = false)
+    private DoctorSchedule doctorSchedule;
 
     @Enumerated(EnumType.STRING)
     private AppointmentStatus status = AppointmentStatus.SCHEDULED;

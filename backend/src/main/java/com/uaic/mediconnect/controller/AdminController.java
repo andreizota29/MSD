@@ -52,16 +52,20 @@ public class AdminController {
 
     @DeleteMapping("/departments/{id}")
     public ResponseEntity<?> deleteDepartment(@PathVariable Long id) {
-        if (!departmentRepo.existsById(id)) {
+
+        var departmentOpt = departmentRepo.findById(id);
+        if (departmentOpt.isEmpty()) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Department not found");
         }
-        departmentRepo.deleteById(id);
-        return ResponseEntity.ok(Map.of("message", "Department deleted successfully"));
-    }
+        Department department = departmentOpt.get();
+        List<Doctor> doctors = doctorRepo.findByDepartment(department);
+        for (Doctor doctor : doctors) {
+            doctor.setDepartment(null);
+        }
+        doctorRepo.saveAll(doctors);
+        departmentRepo.delete(department);
 
-    @GetMapping("/services")
-    public ResponseEntity<List<ClinicService>> getAllServices() {
-        return ResponseEntity.ok(clinicServiceRepo.findAll());
+        return ResponseEntity.ok(Map.of("message", "Department deleted successfully"));
     }
 
     @PostMapping(value = "/services", consumes = "application/json", produces = "application/json")
@@ -93,6 +97,22 @@ public class AdminController {
         return ResponseEntity.ok(Map.of("message", "Service deleted successfully"));
     }
 
+    @GetMapping("/services")
+    public ResponseEntity<List<ClinicService>> getAllServices() {
+        List<ClinicService> services = clinicServiceRepo.findAll();
+        services.forEach(s -> {
+            Department dept = s.getDepartment();
+            if (dept != null) {
+                // Only keep ID and name to avoid recursion
+                Department d = new Department();
+                d.setId(dept.getId());
+                d.setName(dept.getName());
+                s.setDepartment(d);
+            }
+        });
+        return ResponseEntity.ok(services);
+    }
+
     @GetMapping("/doctors")
     public ResponseEntity<List<Doctor>> getAllDoctors() {
         return ResponseEntity.ok(doctorRepo.findAll());
@@ -121,6 +141,36 @@ public class AdminController {
         }
         doctorRepo.deleteById(id);
         return ResponseEntity.ok(Map.of("message", "Doctor deleted successfully"));
+    }
+
+    @PutMapping("/doctors/{id}")
+    public ResponseEntity<?> updateDoctor(@PathVariable Long id, @RequestBody Doctor updatedDoctor) {
+
+        var doctorOpt = doctorRepo.findById(id);
+        if (doctorOpt.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Doctor not found");
+        }
+
+        Doctor doctor = doctorOpt.get();
+
+        doctor.getUser().setFirstName(updatedDoctor.getUser().getFirstName());
+        doctor.getUser().setLastName(updatedDoctor.getUser().getLastName());
+        doctor.getUser().setPhone(updatedDoctor.getUser().getPhone());
+
+        if (updatedDoctor.getDepartment() != null) {
+            var deptOpt = departmentRepo.findById(updatedDoctor.getDepartment().getId());
+            doctor.setDepartment(deptOpt.orElse(null));
+        } else {
+            doctor.setDepartment(null);
+        }
+
+        doctor.setTimetableTemplate(updatedDoctor.getTimetableTemplate());
+
+        userRepo.save(doctor.getUser());
+
+        doctorRepo.save(doctor);
+
+        return ResponseEntity.ok(doctor);
     }
 
 

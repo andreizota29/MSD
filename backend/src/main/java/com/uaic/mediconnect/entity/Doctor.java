@@ -25,7 +25,7 @@ public class Doctor {
     private String title;
 
     @ManyToOne
-    @JoinColumn(name="department_id")
+    @JoinColumn(name = "department_id", nullable = true)
     private Department department;
 
     @ManyToMany

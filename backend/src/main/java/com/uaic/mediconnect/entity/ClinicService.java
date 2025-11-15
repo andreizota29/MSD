@@ -22,6 +22,9 @@ public class ClinicService {
     @Column(nullable = false)
     private String name;
 
+    @Column(nullable = false)
+    private Double price;
+
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "department_id")
     private Department department;

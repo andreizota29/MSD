@@ -1,6 +1,7 @@
 <div class="dashboard">
   <h2>Admin Dashboard</h2>
 
+  <!-- ================= DEPARTMENTS ================= -->
   <section>
     <h3>Departments</h3>
     <form [formGroup]="addDepartmentForm" (ngSubmit)="addDepartment()">
@@ -17,11 +18,14 @@
       <tr *ngFor="let d of departments">
         <td>{{d.id}}</td>
         <td>{{d.name}}</td>
-        <td><button (click)="deleteDepartment(d.id)">Delete</button></td>
+        <td>
+          <button (click)="deleteDepartment(d.id)">Delete</button>
+        </td>
       </tr>
     </table>
   </section>
 
+  <!-- ================= SERVICES ================= -->
   <section>
     <h3>Services</h3>
     <form [formGroup]="addServiceForm" (ngSubmit)="addService()">
@@ -29,7 +33,9 @@
         <option value="">Select Department</option>
         <option *ngFor="let d of departments" [value]="d.id">{{d.name}}</option>
       </select>
+
       <input placeholder="Service Name" formControlName="name">
+      <input placeholder="Service Price" type="number" formControlName="price">
       <button type="submit" [disabled]="addServiceForm.invalid">Add</button>
     </form>
 
@@ -38,19 +44,26 @@
         <th>ID</th>
         <th>Service Name</th>
         <th>Department</th>
+        <th>Price</th>
         <th>Actions</th>
       </tr>
+
       <tr *ngFor="let s of filteredServices">
         <td>{{s.id}}</td>
         <td>{{s.name}}</td>
         <td>{{s.department?.name}}</td>
-        <td><button (click)="deleteService(s.id)">Delete</button></td>
+        <td>{{s.price}}</td>
+        <td>
+          <button (click)="deleteService(s.id)">Delete</button>
+        </td>
       </tr>
     </table>
   </section>
 
+  <!-- ================= DOCTORS ================= -->
   <section>
     <h3>Doctors</h3>
+
     <form [formGroup]="addDoctorForm" (ngSubmit)="addDoctor()">
       <input placeholder="First Name" formControlName="firstName">
       <input placeholder="Last Name" formControlName="lastName">
@@ -58,14 +71,17 @@
       <input placeholder="Phone" formControlName="phone">
       <input placeholder="Password" formControlName="password">
       <input placeholder="Title (e.g. Medic primar)" formControlName="title">
+
       <select formControlName="departmentId">
         <option value="">Select Department</option>
         <option *ngFor="let d of departments" [value]="d.id">{{d.name}}</option>
       </select>
+
       <select formControlName="timetableTemplate">
         <option value="">Select Timetable</option>
         <option *ngFor="let t of timetableTemplates" [value]="t">{{t}}</option>
       </select>
+
       <button type="submit" [disabled]="addDoctorForm.invalid">Add Doctor</button>
     </form>
 
@@ -77,15 +93,49 @@
         <th>Department</th>
         <th>Actions</th>
       </tr>
+
       <tr *ngFor="let doc of doctors">
         <td>{{doc.id}}</td>
         <td>{{doc.user.firstName}} {{doc.user.lastName}}</td>
         <td>{{doc.user.email}}</td>
         <td>{{doc.department?.name}}</td>
-        <td><button (click)="deleteDoctor(doc.id)">Delete</button></td>
+        <td>
+          <button (click)="editDoctor(doc)">Edit</button>
+          <button (click)="deleteDoctor(doc.id)">Delete</button>
+        </td>
       </tr>
     </table>
   </section>
 
   <button (click)="logout()">Logout</button>
+</div>
+
+
+<!-- ===================================================== -->
+<!-- MODAL FOR EDITING DOCTOR -->
+<!-- ===================================================== -->
+
+<div class="modal" *ngIf="editingDoctor">
+  <div class="modal-content">
+    <h3>Edit Doctor</h3>
+
+    <form [formGroup]="editDoctorForm" (ngSubmit)="updateDoctor()">
+
+      <input placeholder="First Name" formControlName="firstName">
+      <input placeholder="Last Name" formControlName="lastName">
+      <input placeholder="Phone" formControlName="phone">
+
+      <select formControlName="departmentId">
+        <option value="">No Department</option>
+        <option *ngFor="let d of departments" [value]="d.id">{{d.name}}</option>
+      </select>
+
+      <select formControlName="timetableTemplate">
+        <option *ngFor="let t of timetableTemplates" [value]="t">{{t}}</option>
+      </select>
+
+      <button type="submit">Save</button>
+      <button type="button" (click)="closeEdit()">Cancel</button>
+    </form>
+  </div>
 </div>

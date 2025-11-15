@@ -9,6 +9,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import javax.swing.text.html.Option;
 import java.util.Map;
 import java.util.Optional;
 
@@ -41,6 +42,14 @@ public class AuthHelperService {
     public Optional<User> getPatientUserFromRequest(HttpServletRequest request){
         var userOpt = getUserFromRequest(request);
         if(userOpt.isEmpty() || userOpt.get().getRole() != Role.PATIENT){
+            return Optional.empty();
+        }
+        return userOpt;
+    }
+
+    public Optional<User> getDoctorUserFromRequest(HttpServletRequest request){
+        var userOpt = getUserFromRequest(request);
+        if(userOpt.isEmpty() || userOpt.get().getRole() != Role.DOCTOR){
             return Optional.empty();
         }
         return userOpt;

@@ -1,6 +1,7 @@
 package com.uaic.mediconnect.service;
 
 import com.uaic.mediconnect.entity.Appointment;
+import com.uaic.mediconnect.entity.Doctor;
 import com.uaic.mediconnect.entity.Patient;
 import com.uaic.mediconnect.repository.AppointmentRepo;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,6 +18,10 @@ public class AppointmentService {
 
     public List<Appointment> findByPatient(Patient patient) {
         return appointmentRepo.findByPatient(patient);
+    }
+
+    public List<Appointment> findByDoctor(Doctor doctor){
+        return appointmentRepo.findByDoctor(doctor);
     }
 
     public Appointment save(Appointment appointment) {
