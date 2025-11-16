@@ -8,10 +8,12 @@ import com.uaic.mediconnect.repository.DoctorRepo;
 import com.uaic.mediconnect.requests.LoginRequest;
 import com.uaic.mediconnect.security.JwtUtil;
 import com.uaic.mediconnect.service.AuthHelperService;
+import com.uaic.mediconnect.service.EmailService;
 import com.uaic.mediconnect.service.PatientService;
 import com.uaic.mediconnect.service.UserService;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jws;
+import io.jsonwebtoken.JwtException;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -25,6 +27,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/auth")
@@ -45,6 +48,9 @@ public class AuthController {
 
     @Autowired
     private DoctorRepo doctorRepo;
+
+    @Autowired
+    private EmailService emailService;
 
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody User user){
@@ -128,6 +134,72 @@ public class AuthController {
                 "profileCompleted", user.isProfileCompleted()
         );
         return ResponseEntity.ok(response);
+    }
+
+    @PutMapping("/change-password")
+    public ResponseEntity<?> changePassword(
+            HttpServletRequest request,
+            @RequestBody Map<String, String> body) {
+        var userOpt = authHelper.getPatientUserFromRequest(request);
+        if(userOpt.isEmpty()) return ResponseEntity.status(401).body("Unauthorized");
+
+        User user = userOpt.get();
+        String newPassword = body.get("newPassword");
+        if(newPassword == null || newPassword.isBlank()) {
+            return ResponseEntity.badRequest().body("Password required");
+        }
+
+        userService.changePassword(user, newPassword);
+        return ResponseEntity.ok(Map.of("message", "Password changed successfully"));
+    }
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<?> forgotPassword(@RequestBody Map<String, String> body) {
+        String email = body.get("email");
+        Optional<User> userOpt = userService.findByEmail(email);
+
+        if (userOpt.isPresent()) {
+            User user = userOpt.get();
+            String resetToken = jwtUtil.generateResetToken(user.getEmail(), user.getUserId());
+            String resetLink = "http://localhost:4200/reset-password?token=" + resetToken;
+
+            try {
+                emailService.sendSimpleEmail(email, "Password Reset",
+                        "Click this link to reset your password: " + resetLink);
+                System.out.println("Password reset email sent to: " + email);
+            } catch (Exception e) {
+                System.err.println("Failed to send password reset email to " + email);
+                e.printStackTrace();
+            }
+        }
+
+
+        return ResponseEntity.ok(Map.of("message", "If this email exists in our system, a password reset link has been sent."));
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<?> resetPassword(@RequestBody Map<String, String> body) {
+        String token = body.get("token");
+        String newPassword = body.get("newPassword");
+
+        if (newPassword == null || newPassword.isBlank()) {
+            return ResponseEntity.badRequest().body("Password required");
+        }
+
+        try {
+            Jws<Claims> claims = jwtUtil.validateToken(token);
+            Long userId = claims.getBody().get("userId", Long.class);
+
+            User user = userService.getUserById(userId)
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+
+            userService.changePassword(user, newPassword);
+
+            return ResponseEntity.ok(Map.of("message", "Password changed successfully"));
+
+        } catch (JwtException e) {
+            return ResponseEntity.status(400).body("Invalid or expired token");
+        }
     }
 
     //    @PostMapping("/complete-profile")

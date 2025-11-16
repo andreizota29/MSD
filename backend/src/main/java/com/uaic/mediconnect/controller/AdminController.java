@@ -3,6 +3,7 @@ package com.uaic.mediconnect.controller;
 import com.uaic.mediconnect.entity.*;
 import com.uaic.mediconnect.repository.*;
 import com.uaic.mediconnect.service.AppointmentService;
+import com.uaic.mediconnect.service.DepartmentService;
 import com.uaic.mediconnect.service.ScheduleGenerator;
 import com.uaic.mediconnect.service.UserService;
 import jakarta.transaction.Transactional;
@@ -45,6 +46,9 @@ public class AdminController {
     @Autowired
     private AppointmentService appointmentService;
 
+    @Autowired
+    private DepartmentService departmentService;
+
     @GetMapping("/departments")
     public ResponseEntity<List<Department>> getAllDepartments(){
         return ResponseEntity.ok(departmentRepo.findAll());
@@ -60,21 +64,17 @@ public class AdminController {
 
 
     @DeleteMapping("/departments/{id}")
-    public ResponseEntity<?> deleteDepartment(@PathVariable Long id) {
-
-        var departmentOpt = departmentRepo.findById(id);
-        if (departmentOpt.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Department not found");
+    public ResponseEntity<Map<String, String>> deleteDepartment(@PathVariable Long id) {
+        System.out.println("Received delete request for department ID: " + id);
+        try {
+            departmentService.deleteDepartment(id);
+            System.out.println("Department deleted successfully: " + id);
+            return ResponseEntity.ok(Map.of("message", "Department deleted successfully"));
+        } catch (RuntimeException e) {
+            System.out.println("Department deletion failed: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("error", e.getMessage()));
         }
-        Department department = departmentOpt.get();
-        List<Doctor> doctors = doctorRepo.findByDepartment(department);
-        for (Doctor doctor : doctors) {
-            doctor.setDepartment(null);
-        }
-        doctorRepo.saveAll(doctors);
-        departmentRepo.delete(department);
-
-        return ResponseEntity.ok(Map.of("message", "Department deleted successfully"));
     }
 
     @PostMapping(value = "/services", consumes = "application/json", produces = "application/json")
@@ -123,6 +123,7 @@ public class AdminController {
     @GetMapping("/doctors")
     public ResponseEntity<List<Doctor>> getAllDoctors() {
         List<Doctor> doctors = doctorRepo.findByActiveTrue();
+        doctors.forEach(d -> System.out.println(d.getDepartment()));
         return ResponseEntity.ok(doctors);
     }
 
@@ -133,24 +134,17 @@ public class AdminController {
                 return ResponseEntity.badRequest().body("Doctor must have a user and department assigned");
             }
 
-            // Check department exists
             if (!departmentRepo.existsById(doctor.getDepartment().getId())) {
                 return ResponseEntity.badRequest().body("Department not found");
             }
 
-            // Encode password
             if (doctor.getUser().getPassword() == null || doctor.getUser().getPassword().isBlank()) {
                 return ResponseEntity.badRequest().body("Password is required");
             }
             doctor.getUser().setPassword(passwordEncoder.encode(doctor.getUser().getPassword()));
-
-            // Set role
             doctor.getUser().setRole(Role.DOCTOR);
-
-            // Save doctor (cascade saves user)
             Doctor savedDoctor = doctorRepo.save(doctor);
 
-            // Generate schedules
             List<DoctorSchedule> slots = scheduleGenerator.generate90Days(savedDoctor);
             scheduleRepo.saveAll(slots);
 
@@ -176,6 +170,7 @@ public class AdminController {
     }
 
     @PutMapping("/doctors/{id}")
+    @Transactional
     public ResponseEntity<?> updateDoctor(@PathVariable Long id, @RequestBody Doctor updatedDoctor) {
 
         var doctorOpt = doctorRepo.findById(id);
@@ -192,7 +187,6 @@ public class AdminController {
         doctor.getUser().setLastName(updatedDoctor.getUser().getLastName());
         doctor.getUser().setPhone(updatedDoctor.getUser().getPhone());
 
-        // ✔️ Update password if provided
         if (updatedDoctor.getUser().getPassword() != null &&
                 !updatedDoctor.getUser().getPassword().isBlank()) {
 

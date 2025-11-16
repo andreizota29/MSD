@@ -15,7 +15,7 @@ public class Appointment {
     private Long id;
 
     @ManyToOne
-    @JoinColumn(name = "doctor_id")
+    @JoinColumn(name = "doctor_id", nullable = true)
     private Doctor doctor;
 
     @ManyToOne
@@ -23,7 +23,7 @@ public class Appointment {
     private Patient patient;
 
     @ManyToOne
-    @JoinColumn(name = "service_id", nullable = false)
+    @JoinColumn(name = "service_id", nullable = true)
     private ClinicService service;
 
     @ManyToOne

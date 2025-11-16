@@ -30,7 +30,6 @@ public class CustomUserDetailsService implements UserDetailsService {
         User user = userRepo.findByEmail(email)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found: " + email));
 
-        // Check if user is a doctor and active
         if (user.getRole() == Role.DOCTOR) {
             Doctor doctor = doctorRepo.findByUser_UserId(user.getUserId())
                     .orElseThrow(() -> new UsernameNotFoundException("Doctor account not found"));

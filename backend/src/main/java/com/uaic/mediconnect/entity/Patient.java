@@ -1,5 +1,6 @@
 package com.uaic.mediconnect.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -31,6 +32,7 @@ public class Patient {
     private LocalDate dateOfBirth;
 
     @OneToMany(mappedBy = "patient", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
     private List<DoctorSchedule> appointments;
 
 }

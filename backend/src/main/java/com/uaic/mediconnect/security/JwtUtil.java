@@ -35,6 +35,19 @@ public class JwtUtil {
                 .compact();
     }
 
+    public String generateResetToken(String email, Long userId) {
+        Date now = new Date();
+        Date exp = new Date(now.getTime() + 15 * 60 * 1000);
+
+        return Jwts.builder()
+                .setSubject(email)
+                .claim("userId", userId)
+                .setIssuedAt(now)
+                .setExpiration(exp)
+                .signWith(getSigningKey(), SignatureAlgorithm.HS256)
+                .compact();
+    }
+
     public Jws<Claims> validateToken(String token) throws JwtException {
         return Jwts.parserBuilder()
                 .setSigningKey(getSigningKey())

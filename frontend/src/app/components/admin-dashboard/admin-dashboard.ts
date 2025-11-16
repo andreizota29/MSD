@@ -49,7 +49,7 @@ export class AdminDashboard implements OnInit {
     phone: new FormControl('', Validators.required),
     departmentId: new FormControl(''),
     timetableTemplate: new FormControl('', Validators.required),
-    password: new FormControl('') 
+    password: new FormControl('')
   });
 
   constructor(private http: HttpClient, private router: Router) { }
@@ -135,24 +135,25 @@ export class AdminDashboard implements OnInit {
 
   deleteDepartment(id: number) {
     const headers = this.getAuthHeaders();
-
     this.http.delete(`http://localhost:5050/admin/departments/${id}`, { headers })
       .subscribe({
         next: () => {
           this.departments = this.departments.filter(d => d.id !== id);
           this.services = this.services.filter(s => s.department?.id !== id);
-
           if (this.selectedDepartmentId === id) {
             this.selectedDepartmentId = null;
             this.filteredServices = [];
           }
-          this.http.get<any[]>('http://localhost:5050/admin/doctors', { headers })
-            .subscribe({
-              next: (res) => this.doctors = res,
-              error: (err) => console.error(err)
-            });
+          this.loadData(); // refresh departments, services, doctors
+          alert('Department deleted successfully');
         },
-        error: (err) => console.error(err)
+        error: (err) => {
+          if (err.status === 404) {
+            alert('Department not found or already deleted');
+          } else {
+            console.error(err);
+          }
+        }
       });
   }
 
@@ -264,7 +265,7 @@ export class AdminDashboard implements OnInit {
       phone: doc.user.phone,
       departmentId: doc.department?.id || '',
       timetableTemplate: doc.timetableTemplate,
-      password: ''  
+      password: ''
     });
   }
 
@@ -279,7 +280,7 @@ export class AdminDashboard implements OnInit {
         firstName: this.editDoctorForm.value.firstName,
         lastName: this.editDoctorForm.value.lastName,
         phone: this.editDoctorForm.value.phone,
-        password: this.editDoctorForm.value.password || null 
+        password: this.editDoctorForm.value.password || null
       },
       department: this.editDoctorForm.value.departmentId
         ? { id: this.editDoctorForm.value.departmentId }

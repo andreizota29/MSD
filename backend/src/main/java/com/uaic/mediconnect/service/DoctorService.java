@@ -28,10 +28,8 @@ public class DoctorService {
 
         Doctor saved = doctorRepo.save(doctor);
 
-        // generate slots for next 90 days
         List<DoctorSchedule> slots = scheduleGenerator.generate90Days(saved);
 
-        // save all slots
         scheduleRepo.saveAll(slots);
 
         return saved;
@@ -54,7 +52,6 @@ public class DoctorService {
     }
 
     public List<Doctor> findByDepartment(Department department) {
-        // Only return active doctors
         return doctorRepo.findByDepartment(department).stream()
                 .filter(Doctor::isActive)
                 .toList();

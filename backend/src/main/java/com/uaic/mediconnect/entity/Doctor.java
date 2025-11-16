@@ -7,7 +7,6 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.math.BigDecimal;
 import java.util.List;
 
 @Entity
@@ -29,8 +28,9 @@ public class Doctor {
     @Column(nullable = false)
     private String title;
 
-    @ManyToOne
-    @JoinColumn(name = "department_id", nullable = true)
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "department_id")
+    @JsonIgnoreProperties({"services"})
     private Department department;
 
     @Column(nullable = false)
@@ -61,5 +61,8 @@ public class Doctor {
                 ", user=" + (user != null ? user.getEmail() : null) +
                 '}';
     }
+
+    @OneToMany(mappedBy = "doctor", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Appointment> appointments;
 
 }

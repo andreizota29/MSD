@@ -50,6 +50,9 @@ public class PatientController {
     @Autowired
     private DoctorScheduleRepo scheduleRepo;
 
+    @Autowired
+    private EmailService emailService;
+
 
     @GetMapping("/me")
     public ResponseEntity<?> getMyProfile(HttpServletRequest request){
@@ -88,19 +91,23 @@ public class PatientController {
         return ResponseEntity.ok(Map.of("message", "Account deleted successfully"));
     }
 
-    @GetMapping("/appointments")
-    public ResponseEntity<?> getMyAppointments(HttpServletRequest request) {
+    @GetMapping("/appointments/list")
+    public ResponseEntity<?> getMyAppointmentsList(HttpServletRequest request) {
         var userOpt = authHelper.getPatientUserFromRequest(request);
-        if(userOpt.isEmpty()) {
-            return ResponseEntity.status(401).body("Invalid or unauthorized user");
+        if (userOpt.isEmpty()) {
+            return ResponseEntity.status(401).body("Unauthorized");
         }
 
         var patientOpt = patientService.findByUser(userOpt.get());
-        if(patientOpt.isEmpty()) {
+        if (patientOpt.isEmpty()) {
             return ResponseEntity.badRequest().body("Patient not found");
         }
 
-        var appointments = appointmentService.findByPatient(patientOpt.get());
+        var appointments = appointmentService.findByPatient(patientOpt.get())
+                .stream()
+                .filter(a -> a.getStatus() == AppointmentStatus.SCHEDULED || a.getStatus() == AppointmentStatus.COMPLETED)
+                .toList();
+
         return ResponseEntity.ok(appointments);
     }
 
@@ -129,6 +136,30 @@ public class PatientController {
         return ResponseEntity.status(HttpStatus.CREATED).body(savedAppointment);
     }
 
+    @DeleteMapping("/appointments/{id}")
+    public ResponseEntity<?> cancelAppointment(HttpServletRequest request, @PathVariable Long id) {
+        var userOpt = authHelper.getPatientUserFromRequest(request);
+        if (userOpt.isEmpty()) return ResponseEntity.status(401).body("Unauthorized");
+
+        var patientOpt = patientService.findByUser(userOpt.get());
+        if (patientOpt.isEmpty()) return ResponseEntity.badRequest().body("Patient not found");
+
+        var appointmentOpt = appointmentService.findById(id);
+        if (appointmentOpt.isEmpty()) return ResponseEntity.badRequest().body("Appointment not found");
+
+        var appointment = appointmentOpt.get();
+
+        if (!appointment.getPatient().getId().equals(patientOpt.get().getId()))
+            return ResponseEntity.status(403).body("Cannot cancel this appointment");
+
+        if (appointment.getStatus() == AppointmentStatus.COMPLETED)
+            return ResponseEntity.badRequest().body("Cannot cancel completed appointments");
+
+        appointmentService.cancelAppointment(appointment);
+
+        return ResponseEntity.ok(Map.of("message", "Appointment cancelled successfully"));
+    }
+
     @GetMapping("/departments")
     public ResponseEntity<?> getAllDepartments() {
         return ResponseEntity.ok(departmentRepo.findAll());
@@ -136,7 +167,18 @@ public class PatientController {
 
     @GetMapping("/departments/{id}/services")
     public ResponseEntity<?> getServicesByDepartment(@PathVariable Long id) {
-        return ResponseEntity.ok(clinicServiceService.findAllByDepartment(id));
+        var services = clinicServiceService.findAllByDepartment(id);
+        services.forEach(s -> {
+            Department dept = s.getDepartment();
+            if (dept != null) {
+                Department d = new Department();
+                d.setId(dept.getId());
+                d.setName(dept.getName());
+                s.setDepartment(d);
+            }
+            s.setAppointments(null);
+        });
+        return ResponseEntity.ok(services);
     }
 
     @PostMapping("/appointments/book")
@@ -176,6 +218,24 @@ public class PatientController {
         appointment.setStatus(AppointmentStatus.SCHEDULED);
 
         appointmentService.save(appointment);
+
+        try {
+            String to = patient.getUser().getEmail();
+            String subject = "Appointment Confirmation";
+            String text = String.format(
+                    "Hello %s %s,\n\nYour appointment for '%s' with Dr. %s %s on %s at %s has been successfully booked.\n\nThank you!",
+                    patient.getUser().getFirstName(),
+                    patient.getUser().getLastName(),
+                    service.getName(),
+                    slot.getDoctor().getUser().getFirstName(),
+                    slot.getDoctor().getUser().getLastName(),
+                    slot.getDate().toString(),
+                    slot.getStartTime()
+            );
+            emailService.sendSimpleEmail(to, subject, text);
+        } catch (Exception e) {
+            System.err.println("Failed to send confirmation email: " + e.getMessage());
+        }
 
         return ResponseEntity.ok(Map.of(
                 "message", "Appointment booked successfully",

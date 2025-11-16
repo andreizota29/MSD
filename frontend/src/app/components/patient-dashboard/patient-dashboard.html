@@ -2,44 +2,76 @@
 <p>Your role: {{role}}</p>
 <button (click)="logout()">Logout</button>
 <button (click)="editProfile()">Edit Profile</button>
+<button (click)="goToChangePassword()">Change Password</button>
 
 <hr>
 
-<label>Department:</label>
-<select [(ngModel)]="selectedDepartmentId" (change)="onDepartmentChange()">
-  <option [ngValue]="null">-- Select Department --</option>
-  <option *ngFor="let d of departments" [ngValue]="d.id">{{d.name}}</option>
-</select>
+<button (click)="showAppointments = false">Book Appointment</button>
+<button (click)="loadAppointments()">My Appointments</button>
 
-<label>Service:</label>
-<select [(ngModel)]="selectedServiceId" (change)="loadSlots()">
-  <option [ngValue]="null">-- Select Service --</option>
-  <option *ngFor="let s of services" [ngValue]="s.id">{{s.name}}</option>
-</select>
+<div *ngIf="!showAppointments">
+  <label>Department:</label>
+  <select [(ngModel)]="selectedDepartmentId" (change)="onDepartmentChange()">
+    <option [ngValue]="null">-- Select Department --</option>
+    <option *ngFor="let d of departments" [ngValue]="d.id">{{d.name}}</option>
+  </select>
 
-<hr>
+  <label>Service:</label>
+  <select [(ngModel)]="selectedServiceId" (change)="loadSlots()">
+    <option [ngValue]="null">-- Select Service --</option>
+    <option *ngFor="let s of services" [ngValue]="s.id">{{s.name}}</option>
+  </select>
 
-<div *ngIf="selectedServiceId">
-  <button (click)="prevDay()">⬅ Previous Day</button>
-  <span>{{ formattedDate }}</span>
-  <button (click)="nextDay()">Next Day ➡</button>
+  <hr>
 
-  <div *ngFor="let group of groupedSlots" class="doctor-group">
+  <div *ngIf="selectedServiceId">
+    <button (click)="prevDay()">⬅ Previous Day</button>
+    <span>{{ formattedDate }}</span>
+    <button (click)="nextDay()">Next Day ➡</button>
 
-    <h3>
-  {{ group.doctor.user.firstName || 'Unknown' }} {{ group.doctor.user.lastName || '' }}
-</h3>
-
-    <div *ngFor="let slot of group.slots" class="slot-item">
-      <label>
-        <input type="radio" [name]="'slot-' + group.doctor.id" [(ngModel)]="selectedSlotId" [value]="slot.id">
-
-        {{ slot.startTime.substring(0,5) }} - {{ slot.endTime.substring(0,5) }}
-      </label>
+    <div *ngFor="let group of groupedSlots" class="doctor-group">
+      <h3>{{ group.doctor.user.firstName || 'Unknown' }} {{ group.doctor.user.lastName || '' }}</h3>
+      <div *ngFor="let slot of group.slots" class="slot-item">
+        <label>
+          <input type="radio" [name]="'slot-' + group.doctor.id" [(ngModel)]="selectedSlotId" [value]="slot.id">
+          {{ slot.startTime.substring(0,5) }} - {{ slot.endTime.substring(0,5) }}
+        </label>
+      </div>
+      <hr>
     </div>
 
-    <hr>
+    <button (click)="confirmAppointment()" [disabled]="!selectedSlotId">Confirm Appointment</button>
   </div>
+</div>
 
-  <button (click)="confirmAppointment()" [disabled]="!selectedSlotId">Confirm Appointment</button>
+<div *ngIf="showAppointments">
+  <h3>My Appointments</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Time</th>
+        <th>Doctor</th>
+        <th>Department</th>
+        <th>Service</th>
+        <th>Price</th>
+        <th>Status</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let a of appointments">
+        <td>{{ a.doctorSchedule.date }}</td>
+        <td>{{ a.doctorSchedule.startTime | slice:0:5 }} - {{ a.doctorSchedule.endTime | slice:0:5 }}</td>
+        <td>{{ a.doctor.user.firstName }} {{ a.doctor.user.lastName }}</td>
+        <td>{{ a.service.department.name || 'N/A' }}</td>
+        <td>{{ a.service.name }}</td>
+        <td>{{ a.service.price | currency:'RON':'symbol':'1.2-2' }}</td>
+        <td>{{ a.status }}</td>
+        <td>
+          <button *ngIf="a.status === 'SCHEDULED'" (click)="cancelAppointment(a.id)">Cancel</button>
+        </td>
+      </tr>
+    </tbody>
+  </table>
 </div>

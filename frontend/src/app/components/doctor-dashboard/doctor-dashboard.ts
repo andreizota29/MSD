@@ -13,10 +13,10 @@ import { Router } from '@angular/router';
 export class DoctorDashboard implements OnInit {
 
   weekSlots: any[] = [];
-  weekStart!: Date;  
+  weekStart!: Date;
   weekDays = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
-  times: string[] = [];  
+  times: string[] = [];
   slotsByDateTime: Map<string, Map<string, any>> = new Map();
 
   constructor(private http: HttpClient, private router: Router) { }
@@ -26,10 +26,14 @@ export class DoctorDashboard implements OnInit {
     this.loadWeek();
   }
 
+  goToChangePassword() {
+  this.router.navigate(['/change-password']);
+}
+
   initWeek() {
     const today = new Date();
-    const day = today.getDay(); 
-    const mondayOffset = (day + 6) % 7; 
+    const day = today.getDay();
+    const mondayOffset = (day + 6) % 7;
     this.weekStart = new Date(today);
     this.weekStart.setHours(0, 0, 0, 0);
     this.weekStart.setDate(today.getDate() - mondayOffset);
@@ -61,6 +65,7 @@ export class DoctorDashboard implements OnInit {
     this.times = [];
     this.slotsByDateTime = new Map();
     const timeSet = new Set<string>();
+
     for (const s of this.weekSlots) {
       const date = s.date;
       const start = this.normalizeTimeString(s.startTime);
@@ -79,34 +84,27 @@ export class DoctorDashboard implements OnInit {
       const sorted = Array.from(timeSet).sort();
       let cur = sorted[0];
       const last = sorted[sorted.length - 1];
-
       while (cur <= last) {
         allTimes.push(cur);
         cur = this.addMinutes(cur, 30);
       }
     }
-
     this.times = allTimes;
 
     const today = new Date();
-    const dayOfWeek = today.getDay();
-    const workingDays = this.getDoctorWorkingDays(); 
+    const workingDays = this.getDoctorWorkingDays();
 
     for (let i = 0; i < 7; i++) {
       const d = this.getWeekDate(i);
       const ds = this.formatDate(d);
 
-      if (!this.slotsByDateTime.has(ds)) {
-        this.slotsByDateTime.set(ds, new Map());
-      }
+      if (!this.slotsByDateTime.has(ds)) this.slotsByDateTime.set(ds, new Map());
 
       const dayName = this.weekDays[i];
       if (workingDays.includes(dayName) && d >= today) {
         const map = this.slotsByDateTime.get(ds)!;
         for (const t of allTimes) {
-          if (!map.has(t)) {
-            map.set(t, null); 
-          }
+          if (!map.has(t)) map.set(t, null);
         }
       }
     }
@@ -130,7 +128,7 @@ export class DoctorDashboard implements OnInit {
   }
 
   formatDate(d: Date): string {
-    return d.toLocaleDateString('en-CA'); 
+    return d.toLocaleDateString('en-CA');
   }
 
   normalizeTimeString(t: string | undefined | null): string {
@@ -147,8 +145,22 @@ export class DoctorDashboard implements OnInit {
 
   isPast(slot: any) {
     if (!slot) return false;
+    const now = new Date();
     const dt = new Date(`${slot.date}T${slot._end || this.normalizeTimeString(slot.endTime)}:00`);
-    return dt.getTime() < Date.now();
+    return dt.getTime() < now.getTime();
+  }
+
+  slotStatus(slot: any): string {
+    if (!slot) return '';
+
+    if (slot.booked) {
+      const patientName = this.slotPatientName(slot) || 'Booked';
+      if (this.isPast(slot)) return `Completed – ${patientName}`; // past booked
+      return patientName; // upcoming booked
+    }
+
+    if (this.isPast(slot)) return 'Past'; // past free
+    return 'Free'; // upcoming free
   }
 
   isBooked(slot: any) {
@@ -173,8 +185,6 @@ export class DoctorDashboard implements OnInit {
     d.setHours(h, m + minutes);
     return `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
   }
-
-
 
   private getAuthHeaders(): HttpHeaders {
     const token = localStorage.getItem('token');

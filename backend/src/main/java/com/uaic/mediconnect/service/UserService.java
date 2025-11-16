@@ -83,4 +83,9 @@ public class UserService {
                 })
                 .orElseThrow(() -> new RuntimeException("User not found"));
     }
+
+    public void changePassword(User user, String newPassword) {
+        user.setPassword(passwordEncoder.encode(newPassword));
+        userRepo.save(user);
+    }
 }

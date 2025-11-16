@@ -13,6 +13,7 @@ interface ClinicService {
   id: number;
   name: string;
   price: number;
+  department: Department;
 }
 
 interface Doctor {
@@ -32,6 +33,14 @@ interface Slot {
   booked: boolean;
 }
 
+interface Appointment {
+  id: number;
+  doctor: Doctor;
+  service: ClinicService;
+  doctorSchedule: Slot;
+  status: string;
+}
+
 @Component({
   selector: 'app-patient-dashboard',
   standalone: true,
@@ -49,6 +58,8 @@ export class PatientDashboard implements OnInit {
   selectedDepartmentId: number | null = null;
   selectedServiceId: number | null = null;
   groupedSlots: { doctor: Doctor; slots: Slot[] }[] = [];
+  appointments: Appointment[] = [];
+showAppointments = false;
 
   selectedDate: Date = new Date();
   slots: Slot[] = [];
@@ -93,23 +104,33 @@ export class PatientDashboard implements OnInit {
       .subscribe(res => this.departments = res);
   }
 
+  goToChangePassword() {
+  this.router.navigate(['/change-password']);
+}
+
   onDepartmentChange() {
-    this.selectedServiceId = null;
-    this.services = [];
-    if (!this.selectedDepartmentId) return;
+  this.selectedServiceId = null;
+  this.services = [];
+  this.selectedDate = new Date();  
+  this.groupedSlots = [];         
+  this.selectedSlotId = null;     
 
-    this.http.get<ClinicService[]>(`http://localhost:5050/patient/departments/${this.selectedDepartmentId}/services`, this.getAuthHeaders())
-      .subscribe(res => this.services = res);
-  }
+  if (!this.selectedDepartmentId) return;
 
+  this.http.get<ClinicService[]>(`http://localhost:5050/patient/departments/${this.selectedDepartmentId}/services`, this.getAuthHeaders())
+    .subscribe(res => {
+      console.log('Services from backend:', res);
+      this.services = res;
+    });
+}
   prevDay() {
     const today = new Date();
-    today.setHours(0, 0, 0, 0); 
+    today.setHours(0, 0, 0, 0);
 
     const newDate = new Date(this.selectedDate);
     newDate.setDate(newDate.getDate() - 1);
 
-    if (newDate < today) return; 
+    if (newDate < today) return;
 
     this.selectedDate = newDate;
     this.loadSlots();
@@ -121,63 +142,92 @@ export class PatientDashboard implements OnInit {
   }
 
   loadSlots() {
-    if (!this.selectedDepartmentId || !this.selectedServiceId) return;
+  if (!this.selectedDepartmentId || !this.selectedServiceId) return;
 
-    const dateStr = this.selectedDate.toISOString().split('T')[0];
-    this.http.get<Slot[]>(`http://localhost:5050/patient/departments/${this.selectedDepartmentId}/services/${this.selectedServiceId}/slots?date=${dateStr}`, this.getAuthHeaders())
-      .subscribe(res => {
-        const freeSlots = res.filter(s => !s.booked);
+  const dateStr = this.selectedDate.toISOString().split('T')[0];
+  const now = new Date();
 
-        freeSlots.forEach((slot, index) => {
-          if (!slot.id) {
-            slot.id = index + 1;
-          }
+  this.http.get<Slot[]>(`http://localhost:5050/patient/departments/${this.selectedDepartmentId}/services/${this.selectedServiceId}/slots?date=${dateStr}`, this.getAuthHeaders())
+    .subscribe(res => {
+      let freeSlots = res.filter(s => !s.booked);
+
+      const selectedDateStr = this.selectedDate.toISOString().split('T')[0];
+      const todayStr = now.toISOString().split('T')[0];
+      if (selectedDateStr === todayStr) {
+        freeSlots = freeSlots.filter(s => {
+          const slotEnd = new Date(`${s.date}T${s.endTime}`);
+          return slotEnd.getTime() > now.getTime();
         });
+      }
 
-        const groups: any = {};
-        freeSlots.forEach(slot => {
-          if (!groups[slot.doctor.id]) {
-            groups[slot.doctor.id] = { doctor: slot.doctor, slots: [] };
-          }
-          groups[slot.doctor.id].slots.push(slot);
-        });
-
-        this.groupedSlots = Object.values(groups);
-        this.selectedSlotId = null;
+      const groups: any = {};
+      freeSlots.forEach(slot => {
+        if (!groups[slot.doctor.id]) {
+          groups[slot.doctor.id] = { doctor: slot.doctor, slots: [] };
+        }
+        groups[slot.doctor.id].slots.push(slot);
       });
-  }
+
+      this.groupedSlots = Object.values(groups);
+      this.selectedSlotId = null;
+    });
+}
 
   selectSlot(slotId: number) {
     this.selectedSlotId = slotId;
   }
 
   confirmAppointment() {
-  if (!this.selectedSlotId) return alert("Please select a slot first");
-  if (!this.selectedServiceId) return alert("Please select a service first");
+    if (!this.selectedSlotId) return alert("Please select a slot first");
+    if (!this.selectedServiceId) return alert("Please select a service first");
 
-  this.http.post('http://localhost:5050/patient/appointments/book', null, {
-    params: {
-      slotId: this.selectedSlotId,
-      serviceId: this.selectedServiceId
-    },
-    ...this.getAuthHeaders()
-  }).subscribe({
-    next: res => {
-      alert('Appointment booked successfully!');
+    this.http.post('http://localhost:5050/patient/appointments/book', null, {
+      params: {
+        slotId: this.selectedSlotId,
+        serviceId: this.selectedServiceId
+      },
+      ...this.getAuthHeaders()
+    }).subscribe({
+      next: res => {
+        alert('Appointment booked successfully!');
 
-      this.selectedDepartmentId = null;
-      this.selectedServiceId = null;
-      this.services = [];
-      this.selectedDate = new Date();
-      this.groupedSlots = [];
-      this.selectedSlotId = null;
+        this.selectedDepartmentId = null;
+        this.selectedServiceId = null;
+        this.services = [];
+        this.selectedDate = new Date();
+        this.groupedSlots = [];
+        this.selectedSlotId = null;
 
-      this.loadDepartments();
-    },
-    error: err => {
-      console.log(err);
-      alert('Error booking appointment');
-    }
-  });
+        this.loadDepartments();
+      },
+      error: err => {
+        console.log(err);
+        alert('Error booking appointment');
+      }
+    });
+  }
+
+  loadAppointments() {
+  this.http.get<Appointment[]>('http://localhost:5050/patient/appointments/list', this.getAuthHeaders())
+    .subscribe(res => {
+      this.appointments = res;
+      this.showAppointments = true;
+    });
+}
+
+cancelAppointment(id: number) {
+  if (!confirm("Are you sure you want to cancel this appointment?")) return;
+
+  this.http.delete(`http://localhost:5050/patient/appointments/${id}`, this.getAuthHeaders())
+    .subscribe({
+      next: res => {
+        alert("Appointment cancelled successfully");
+        this.loadAppointments(); 
+      },
+      error: err => {
+        console.log(err);
+        alert("Cannot cancel appointment");
+      }
+    });
 }
 }

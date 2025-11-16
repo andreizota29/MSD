@@ -1,9 +1,8 @@
 package com.uaic.mediconnect.service;
 
-import com.uaic.mediconnect.entity.Appointment;
-import com.uaic.mediconnect.entity.Doctor;
-import com.uaic.mediconnect.entity.Patient;
+import com.uaic.mediconnect.entity.*;
 import com.uaic.mediconnect.repository.AppointmentRepo;
+import com.uaic.mediconnect.repository.DoctorScheduleRepo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -15,6 +14,9 @@ public class AppointmentService {
 
     @Autowired
     private AppointmentRepo appointmentRepo;
+
+    @Autowired
+    private DoctorScheduleRepo scheduleRepo;
 
     public List<Appointment> findByPatient(Patient patient) {
         return appointmentRepo.findByPatient(patient);
@@ -38,5 +40,25 @@ public class AppointmentService {
 
     public boolean existsByDoctor(Doctor doctor) {
         return appointmentRepo.existsByDoctor(doctor);
+    }
+
+    public void cancelAppointment(Appointment appointment) {
+        appointment.setStatus(AppointmentStatus.CANCELLED);
+        appointmentRepo.save(appointment);
+
+        freeSlot(appointment);
+    }
+
+    private void freeSlot(Appointment appointment) {
+        DoctorSchedule slot = appointment.getDoctorSchedule();
+        if (slot != null) {
+            slot.setBooked(false);
+            slot.setPatient(null);
+            scheduleRepo.save(slot);
+        }
+    }
+
+    public List<Appointment> findByService(ClinicService service){
+        return appointmentRepo.findByService(service);
     }
 }

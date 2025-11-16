@@ -1,25 +1,38 @@
-<p>login works!</p>
+<div *ngIf="!showForgotPassword">
+  <form [formGroup]="loginForm" (ngSubmit)="handleLogin()">
+      <label for="email">Email</label>
+      <input type="email" id="email" placeholder="Please enter your email" formControlName="email">
 
-<form [formGroup]="data" (ngSubmit)="handleSubmit()">
-    <label for="email">Email</label>
-    <input type="email" id="email" placeholder="Please enter your email" formControlName="email">
+      <br/><br/>
 
-    <br/> <br/>
+      <label for="password">Password</label>
+      <input type="password" id="password" placeholder="Please enter your password" formControlName="password">
 
-    <label for="password">Password</label>
-    <input type="password" id="password" placeholder="Please enter your password" formControlName="password">
+      <br/><br/>
 
-    <br/> <br/>
-    
-    <label for="role">Login as:</label>
-    <select id="role" formControlName="role">
-        <option value="PATIENT">Patient</option>
-        <option value="DOCTOR">Doctor</option>
-    </select>
+      <label for="role">Login as:</label>
+      <select id="role" formControlName="role">
+          <option value="PATIENT">Patient</option>
+          <option value="DOCTOR">Doctor</option>
+      </select>
 
-    <button type="submit" [disabled]="data.invalid">Login</button>
+      <button type="submit" [disabled]="loginForm.invalid">Login</button>
 
-    <br/> <br/>
+      <br/><br/>
+      <a href="javascript:void(0)" (click)="toggleForgotPassword()">Forgot password?</a>
+      <br/>
+      <a routerLink="/register">Register</a>
+  </form>
+</div>
 
-    <a routerLink="/register">Register</a>
-</form>
+<div *ngIf="showForgotPassword">
+  <form [formGroup]="forgotForm" (ngSubmit)="handleForgotPassword()">
+      <label for="forgotEmail">Enter your email to reset password:</label>
+      <input type="email" id="forgotEmail" placeholder="Your email" formControlName="email">
+
+      <button type="submit" [disabled]="forgotForm.invalid">Send Reset Link</button>
+
+      <br/><br/>
+      <a href="javascript:void(0)" (click)="toggleForgotPassword()">Back to login</a>
+  </form>
+</div>
