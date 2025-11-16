@@ -1,9 +1,6 @@
 package com.uaic.mediconnect.controller;
 
-import com.uaic.mediconnect.entity.Appointment;
-import com.uaic.mediconnect.entity.ClinicService;
-import com.uaic.mediconnect.entity.DoctorSchedule;
-import com.uaic.mediconnect.entity.Role;
+import com.uaic.mediconnect.entity.*;
 import com.uaic.mediconnect.repository.DepartmentRepo;
 import com.uaic.mediconnect.repository.DoctorScheduleRepo;
 import com.uaic.mediconnect.security.JwtUtil;
@@ -16,6 +13,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -49,6 +49,7 @@ public class PatientController {
 
     @Autowired
     private DoctorScheduleRepo scheduleRepo;
+
 
     @GetMapping("/me")
     public ResponseEntity<?> getMyProfile(HttpServletRequest request){
@@ -139,37 +140,82 @@ public class PatientController {
     }
 
     @PostMapping("/appointments/book")
-    public ResponseEntity<?> bookAppointment(HttpServletRequest request, @RequestParam Long slotId){
-        var userOpt = authHelper.getPatientUserFromRequest(request);
-        if(userOpt.isEmpty()) return ResponseEntity.status(401).body("Invalid or Unauthorized user");
-        var patientOpt = patientService.findByUser(userOpt.get());
-        if(patientOpt.isEmpty()) return ResponseEntity.badRequest().body("Patient not found");
-        var patient = patientOpt.get();
+    public ResponseEntity<?> bookAppointment(
+            HttpServletRequest request,
+            @RequestParam Long slotId,
+            @RequestParam Long serviceId
+    ) {
+
+        var user = authHelper.getPatientUserFromRequest(request);
+        if (user.isEmpty())
+            return ResponseEntity.status(401).body("Unauthorized");
+
+        var patient = patientService.findByUser(user.get())
+                .orElse(null);
+
+        if (patient == null)
+            return ResponseEntity.badRequest().body("Patient not found");
+
+        ClinicService service = clinicServiceService.getServiceById(serviceId);
 
         DoctorSchedule slot = scheduleRepo.findById(slotId)
                 .orElseThrow(() -> new RuntimeException("Slot not found"));
-        if(slot.getPatient() != null){
-            return ResponseEntity.status(400).body("Slot already booked");
-        }
 
-        slot.setPatient(patient);
+        if (slot.isBooked())
+            return ResponseEntity.status(400).body("Slot already booked");
+
         slot.setBooked(true);
+        slot.setPatient(patient);
         scheduleRepo.save(slot);
 
         Appointment appointment = new Appointment();
         appointment.setDoctor(slot.getDoctor());
         appointment.setPatient(patient);
+        appointment.setService(service);
         appointment.setDoctorSchedule(slot);
+        appointment.setStatus(AppointmentStatus.SCHEDULED);
+
         appointmentService.save(appointment);
+
         return ResponseEntity.ok(Map.of(
-                "message","Appointment booked successfully",
-                "slotId", slot.getId(),
-                "doctor", slot.getDoctor().getUser().getFirstName() + " " + slot.getDoctor().getUser().getLastName(),
-                "date", slot.getDate(),
-                "startTime", slot.getStartTime(),
-                "endTime", slot.getEndTime()
+                "message", "Appointment booked successfully",
+                "appointmentId", appointment.getId()
         ));
     }
+
+
+
+    @GetMapping("/departments/{depId}/services/{serviceId}/slots")
+    public ResponseEntity<?> getAvailableSlots(
+            HttpServletRequest request,
+            @PathVariable Long depId,
+            @PathVariable Long serviceId,
+            @RequestParam String date
+    ) {
+
+        var user = authHelper.getPatientUserFromRequest(request);
+        if (user.isEmpty())
+            return ResponseEntity.status(401).body("Unauthorized");
+
+        LocalDate targetDate = LocalDate.parse(date);
+
+        var department = departmentRepo.findById(depId);
+        if (department.isEmpty())
+            return ResponseEntity.badRequest().body("Department not found");
+
+        List<Doctor> doctors = doctorService.findByDepartment(department.get());
+
+        List<DoctorSchedule> available = new ArrayList<>();
+
+        for (Doctor d : doctors) {
+            available.addAll(
+                    scheduleRepo.findByDoctorAndDateAndBookedFalseOrderByStartTimeAsc(d, targetDate)
+            );
+        }
+
+        return ResponseEntity.ok(available);
+    }
+
 
     //    @GetMapping("/me")
 //    public ResponseEntity<?> getMyProfile(HttpServletRequest request){

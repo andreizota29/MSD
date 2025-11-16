@@ -1,5 +1,8 @@
 package com.uaic.mediconnect.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -11,6 +14,7 @@ import java.util.List;
 @Table(name="doctor")
 @Getter
 @Setter
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "appointments"})
 public class Doctor {
 
     @Id
@@ -19,6 +23,7 @@ public class Doctor {
 
     @OneToOne(cascade = CascadeType.ALL, orphanRemoval = true)
     @JoinColumn(name = "user_id", nullable = false, unique = true)
+    @JsonIgnoreProperties(value = {"roles", "hibernateLazyInitializer", "handler"}, allowSetters = true)
     private User user;
 
     @Column(nullable = false)
@@ -27,6 +32,9 @@ public class Doctor {
     @ManyToOne
     @JoinColumn(name = "department_id", nullable = true)
     private Department department;
+
+    @Column(nullable = false)
+    private boolean active = true;
 
     @ManyToMany
     @JoinTable(
@@ -37,9 +45,21 @@ public class Doctor {
     private List<ClinicService> services;
 
     @Enumerated(EnumType.STRING)
+    @JsonProperty("timetableTemplate")
     private TimetableTemplate timetableTemplate;
 
     @OneToMany(mappedBy = "doctor", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
     private List<DoctorSchedule> schedules;
+
+    @Override
+    public String toString() {
+        return "Doctor{" +
+                "title='" + title + '\'' +
+                ", timetableTemplate=" + timetableTemplate +
+                ", department=" + (department != null ? department.getId() : null) +
+                ", user=" + (user != null ? user.getEmail() : null) +
+                '}';
+    }
 
 }

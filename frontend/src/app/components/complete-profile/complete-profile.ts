@@ -35,7 +35,7 @@ export class CompleteProfile implements OnInit {
     const payload = JSON.parse(atob(token.split('.')[1]));
 
     if (payload.profileCompleted && !this.isEditMode) {
-      this.router.navigate(['/home']);
+      this.router.navigate(['/patient-dashboard']);
       return;
     }
 
@@ -69,7 +69,7 @@ export class CompleteProfile implements OnInit {
           localStorage.setItem('token', res.token);
         }
         alert(this.isEditMode ? 'Profile updated successfully!' : 'Profile completed successfully!');
-        this.router.navigate(['/home']);
+        this.router.navigate(['/patient-dashboard']);
       },
       error: (err) => console.log(err)
     });
@@ -77,7 +77,7 @@ export class CompleteProfile implements OnInit {
   }
 
   goBack() {
-    this.router.navigate(['/home']);
+    this.router.navigate(['/patient-dashboard']);
   }
 
   deleteAccount() {

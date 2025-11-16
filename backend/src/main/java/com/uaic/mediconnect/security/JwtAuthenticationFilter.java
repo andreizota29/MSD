@@ -51,8 +51,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         } catch (Exception ex) {
             SecurityContextHolder.clearContext();
         }
-        filterChain.doFilter(request,response);
         System.out.println("Authorization header: " + header);
+        System.out.println("Authenticated user: " +
+                (SecurityContextHolder.getContext().getAuthentication() != null ?
+                        SecurityContextHolder.getContext().getAuthentication().getName() : "null"));
+        System.out.println("Authorities: " +
+                (SecurityContextHolder.getContext().getAuthentication() != null ?
+                        SecurityContextHolder.getContext().getAuthentication().getAuthorities() : "null"));
+
+        filterChain.doFilter(request, response);
     }
 
 }

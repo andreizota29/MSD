@@ -1,7 +1,6 @@
 <div class="dashboard">
   <h2>Admin Dashboard</h2>
 
-  <!-- ================= DEPARTMENTS ================= -->
   <section>
     <h3>Departments</h3>
     <form [formGroup]="addDepartmentForm" (ngSubmit)="addDepartment()">
@@ -25,7 +24,6 @@
     </table>
   </section>
 
-  <!-- ================= SERVICES ================= -->
   <section>
     <h3>Services</h3>
     <form [formGroup]="addServiceForm" (ngSubmit)="addService()">
@@ -60,7 +58,6 @@
     </table>
   </section>
 
-  <!-- ================= DOCTORS ================= -->
   <section>
     <h3>Doctors</h3>
 
@@ -69,7 +66,7 @@
       <input placeholder="Last Name" formControlName="lastName">
       <input placeholder="Email" formControlName="email">
       <input placeholder="Phone" formControlName="phone">
-      <input placeholder="Password" formControlName="password">
+      <input  type="password" placeholder="Password" formControlName="password">
       <input placeholder="Title (e.g. Medic primar)" formControlName="title">
 
       <select formControlName="departmentId">
@@ -110,11 +107,6 @@
   <button (click)="logout()">Logout</button>
 </div>
 
-
-<!-- ===================================================== -->
-<!-- MODAL FOR EDITING DOCTOR -->
-<!-- ===================================================== -->
-
 <div class="modal" *ngIf="editingDoctor">
   <div class="modal-content">
     <h3>Edit Doctor</h3>
@@ -131,8 +123,10 @@
       </select>
 
       <select formControlName="timetableTemplate">
-        <option *ngFor="let t of timetableTemplates" [value]="t">{{t}}</option>
+        <option *ngFor="let t of timetableTemplates" [value]="t">{{ t }}</option>
       </select>
+
+      <input placeholder="New Password" formControlName="password" type="password">
 
       <button type="submit">Save</button>
       <button type="button" (click)="closeEdit()">Cancel</button>

@@ -1,5 +1,7 @@
 package com.uaic.mediconnect.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -18,6 +20,7 @@ public class DoctorSchedule {
 
     @ManyToOne
     @JoinColumn(name = "doctor_id")
+    @JsonIgnoreProperties({"schedules"})
     private Doctor doctor;
 
     private LocalDate date;
@@ -29,5 +32,6 @@ public class DoctorSchedule {
 
     @ManyToOne
     @JoinColumn(name = "patient_id")
+    @JsonIgnoreProperties({"appointments"})
     private Patient patient;
 }

@@ -1,8 +1,10 @@
 package com.uaic.mediconnect.controller;
 
+import com.uaic.mediconnect.entity.Doctor;
 import com.uaic.mediconnect.entity.Patient;
 import com.uaic.mediconnect.entity.Role;
 import com.uaic.mediconnect.entity.User;
+import com.uaic.mediconnect.repository.DoctorRepo;
 import com.uaic.mediconnect.requests.LoginRequest;
 import com.uaic.mediconnect.security.JwtUtil;
 import com.uaic.mediconnect.service.AuthHelperService;
@@ -18,6 +20,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.RequestEntity;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -40,6 +43,9 @@ public class AuthController {
     @Autowired
     private JwtUtil jwtUtil;
 
+    @Autowired
+    private DoctorRepo doctorRepo;
+
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody User user){
         user.setRole(Role.PATIENT);
@@ -61,6 +67,15 @@ public class AuthController {
 
         if (user.getRole() != Role.ADMIN && user.getRole() != loginRequest.getRole()) {
             return ResponseEntity.status(401).body(Map.of("error", "Invalid role"));
+        }
+
+        if (user.getRole() == Role.DOCTOR) {
+            Doctor doctor = doctorRepo.findByUser_UserId(user.getUserId())
+                    .orElseThrow(() -> new UsernameNotFoundException("Doctor account not found"));
+
+            if (!doctor.isActive()) {
+                return ResponseEntity.status(403).body(Map.of("error", "Doctor account is inactive"));
+            }
         }
 
         return ResponseEntity.ok(authHelper.generateAuthResponse(user));

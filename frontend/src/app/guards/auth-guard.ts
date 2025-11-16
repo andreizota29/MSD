@@ -20,7 +20,7 @@ export const authGuard: CanActivateFn = (route, state) => {
   if (allowedRoles && !allowedRoles.includes(payload.role)) {
     if (payload.role === 'ADMIN') router.navigate(['/admin-dashboard']);
     else if (payload.role === 'DOCTOR') router.navigate(['/doctor-dashboard']);
-    else router.navigate(['/home']); 
+    else router.navigate(['/patient-dashboard']); 
     return false;
   }
 

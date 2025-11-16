@@ -10,5 +10,7 @@ import java.util.Optional;
 public interface DoctorRepo extends JpaRepository<Doctor, Long> {
     List<Doctor> findByDepartment(Department department);
     Optional<Doctor> findByUser_UserId(Long userId);
+    List<Doctor> findByActiveTrue();
+    Optional<Doctor> findByUser_UserIdAndActiveTrue(Long userId);
 
 }

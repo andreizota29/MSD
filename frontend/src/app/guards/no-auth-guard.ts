@@ -6,7 +6,7 @@ export const noAuthGuard: CanActivateFn = (route, state) => {
   const token = localStorage.getItem('token');
 
   if(token) {
-    router.navigate(['/home']);
+    router.navigate(['/patient-dashboard']);
     return false;
   } else {
     return true;

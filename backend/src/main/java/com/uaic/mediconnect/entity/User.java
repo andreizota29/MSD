@@ -1,5 +1,7 @@
 package com.uaic.mediconnect.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -9,6 +11,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @Table(name="user")
+@JsonIgnoreProperties({"roles"})
 public class User {
 
     public User() {
@@ -35,6 +38,7 @@ public class User {
     private String phone;
 
     @Column(unique = true, nullable = false)
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     private String password;
 
     @Column
@@ -50,5 +54,13 @@ public class User {
     @Column(nullable = false)
     private Role role;
 
-
+    @Override
+    public String toString() {
+        return "User{" +
+                "firstName='" + firstName + '\'' +
+                ", lastName='" + lastName + '\'' +
+                ", email='" + email + '\'' +
+                ", phone='" + phone + '\'' +
+                '}';
+    }
 }

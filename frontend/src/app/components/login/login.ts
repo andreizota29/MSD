@@ -44,7 +44,7 @@ public handleSubmit() {
         this.router.navigate(['/complete-profile']);
       } 
       else {
-        this.router.navigate(['/home']);
+        this.router.navigate(['/patient-dashboard']);
       }
     },
     error: (err) => {

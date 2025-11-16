@@ -35,4 +35,8 @@ public class AppointmentService {
     public void delete(Appointment appointment) {
         appointmentRepo.delete(appointment);
     }
+
+    public boolean existsByDoctor(Doctor doctor) {
+        return appointmentRepo.existsByDoctor(doctor);
+    }
 }

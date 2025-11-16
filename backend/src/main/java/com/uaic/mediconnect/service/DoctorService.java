@@ -1,8 +1,11 @@
 package com.uaic.mediconnect.service;
 
+import com.uaic.mediconnect.entity.Department;
 import com.uaic.mediconnect.entity.Doctor;
+import com.uaic.mediconnect.entity.DoctorSchedule;
 import com.uaic.mediconnect.entity.User;
 import com.uaic.mediconnect.repository.DoctorRepo;
+import com.uaic.mediconnect.repository.DoctorScheduleRepo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -14,6 +17,25 @@ public class DoctorService {
 
     @Autowired
     private DoctorRepo doctorRepo;
+
+    @Autowired
+    private ScheduleGenerator scheduleGenerator;
+
+    @Autowired
+    private DoctorScheduleRepo scheduleRepo;
+
+    public Doctor createDoctor(Doctor doctor) {
+
+        Doctor saved = doctorRepo.save(doctor);
+
+        // generate slots for next 90 days
+        List<DoctorSchedule> slots = scheduleGenerator.generate90Days(saved);
+
+        // save all slots
+        scheduleRepo.saveAll(slots);
+
+        return saved;
+    }
 
     public Doctor saveDoctor(Doctor doctor){
         return doctorRepo.save(doctor);
@@ -30,5 +52,16 @@ public class DoctorService {
     public void deleteDoctor(Long id){
         doctorRepo.deleteById(id);
     }
+
+    public List<Doctor> findByDepartment(Department department) {
+        // Only return active doctors
+        return doctorRepo.findByDepartment(department).stream()
+                .filter(Doctor::isActive)
+                .toList();
+    }
+
+
+
+
 
 }

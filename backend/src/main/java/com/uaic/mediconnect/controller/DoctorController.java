@@ -1,19 +1,19 @@
 package com.uaic.mediconnect.controller;
 
 import com.uaic.mediconnect.entity.Appointment;
+import com.uaic.mediconnect.entity.Doctor;
 import com.uaic.mediconnect.entity.DoctorSchedule;
 import com.uaic.mediconnect.repository.DoctorScheduleRepo;
 import com.uaic.mediconnect.service.AppointmentService;
 import com.uaic.mediconnect.service.AuthHelperService;
 import com.uaic.mediconnect.service.DoctorService;
+import com.uaic.mediconnect.service.ScheduleGenerator;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @RestController
@@ -48,13 +48,37 @@ public class DoctorController {
     }
 
     @GetMapping("/timetable")
-    public ResponseEntity<?> getDoctorTimetable(HttpServletRequest request){
-        var userOpt = authHelperService.getDoctorUserFromRequest(request);
-        if(userOpt.isEmpty()) return  ResponseEntity.status(401).body("Unauthorized");
+    public ResponseEntity<?> getTimetable(HttpServletRequest request){
+        var doctor = authHelperService.getDoctorUserFromRequest(request)
+                .flatMap(doctorService::findByUser);
 
-        var doctorOpt = doctorService.findByUser(userOpt.get());
-        if(doctorOpt.isEmpty()) return ResponseEntity.badRequest().body("Doctor not found");
-        List<DoctorSchedule> timetable = scheduleRepo.findByDoctorOrderByDateAscStartTimeAsc(doctorOpt.get());
-        return ResponseEntity.ok(timetable);
+        if (doctor.isEmpty())
+            return ResponseEntity.status(401).body("Unauthorized");
+
+        List<DoctorSchedule> slots =
+                scheduleRepo.findByDoctorOrderByDateAscStartTimeAsc(doctor.get());
+
+        return ResponseEntity.ok(slots);
+    }
+
+    @GetMapping("/timetable/week")
+    public ResponseEntity<?> getWeeklyTimetable(
+            HttpServletRequest request,
+            @RequestParam String start
+    ) {
+        var doctor = authHelperService.getDoctorUserFromRequest(request)
+                .flatMap(doctorService::findByUser);
+
+        if (doctor.isEmpty())
+            return ResponseEntity.status(401).body("Unauthorized");
+
+        LocalDate monday = LocalDate.parse(start);
+        LocalDate sunday = monday.plusDays(6);
+
+        List<DoctorSchedule> slots =
+                scheduleRepo.findByDoctorAndDateBetweenOrderByDateAscStartTimeAsc(
+                        doctor.get(), monday, sunday);
+
+        return ResponseEntity.ok(slots);
     }
 }

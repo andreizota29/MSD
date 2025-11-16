@@ -12,34 +12,177 @@ import { Router } from '@angular/router';
 })
 export class DoctorDashboard implements OnInit {
 
-  appointments: any[] = [];
+  weekSlots: any[] = [];
+  weekStart!: Date;  
+  weekDays = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
-  constructor(private http: HttpClient, private router: Router) {
+  times: string[] = [];  
+  slotsByDateTime: Map<string, Map<string, any>> = new Map();
+
+  constructor(private http: HttpClient, private router: Router) { }
+
+  ngOnInit() {
+    this.initWeek();
+    this.loadWeek();
+  }
+
+  initWeek() {
+    const today = new Date();
+    const day = today.getDay(); 
+    const mondayOffset = (day + 6) % 7; 
+    this.weekStart = new Date(today);
+    this.weekStart.setHours(0, 0, 0, 0);
+    this.weekStart.setDate(today.getDate() - mondayOffset);
+  }
+
+  changeWeek(offset: number) {
+    this.weekStart = new Date(this.weekStart.getTime() + offset * 7 * 24 * 60 * 60 * 1000);
+    this.loadWeek();
+  }
+
+  loadWeek() {
+    const headers = this.getAuthHeaders();
+    const dateStr = this.formatDate(this.weekStart);
+    this.http.get<any[]>(`http://localhost:5050/doctor/timetable/week?start=${dateStr}`, { headers })
+      .subscribe({
+        next: res => {
+          this.weekSlots = res ?? [];
+          this.prepareViewData();
+        },
+        error: err => {
+          console.error('Error loading week slots', err);
+          this.weekSlots = [];
+          this.prepareViewData();
+        }
+      });
+  }
+
+  prepareViewData() {
+    this.times = [];
+    this.slotsByDateTime = new Map();
+    const timeSet = new Set<string>();
+    for (const s of this.weekSlots) {
+      const date = s.date;
+      const start = this.normalizeTimeString(s.startTime);
+      const end = this.normalizeTimeString(s.endTime);
+
+      if (!this.slotsByDateTime.has(date)) this.slotsByDateTime.set(date, new Map());
+      s._start = start;
+      s._end = end;
+      this.slotsByDateTime.get(date)!.set(start, s);
+
+      timeSet.add(start);
+    }
+
+    const allTimes: string[] = [];
+    if (timeSet.size > 0) {
+      const sorted = Array.from(timeSet).sort();
+      let cur = sorted[0];
+      const last = sorted[sorted.length - 1];
+
+      while (cur <= last) {
+        allTimes.push(cur);
+        cur = this.addMinutes(cur, 30);
+      }
+    }
+
+    this.times = allTimes;
+
+    const today = new Date();
+    const dayOfWeek = today.getDay();
+    const workingDays = this.getDoctorWorkingDays(); 
+
+    for (let i = 0; i < 7; i++) {
+      const d = this.getWeekDate(i);
+      const ds = this.formatDate(d);
+
+      if (!this.slotsByDateTime.has(ds)) {
+        this.slotsByDateTime.set(ds, new Map());
+      }
+
+      const dayName = this.weekDays[i];
+      if (workingDays.includes(dayName) && d >= today) {
+        const map = this.slotsByDateTime.get(ds)!;
+        for (const t of allTimes) {
+          if (!map.has(t)) {
+            map.set(t, null); 
+          }
+        }
+      }
+    }
+  }
+
+  getDoctorWorkingDays(): string[] {
+    return ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+  }
+
+  getSlot(dayIndex: number, time: string) {
+    const dateStr = this.formatDate(this.getWeekDate(dayIndex));
+    const dayMap = this.slotsByDateTime.get(dateStr);
+    return dayMap ? dayMap.get(time) ?? null : null;
+  }
+
+  getWeekDate(offset: number): Date {
+    const d = new Date(this.weekStart);
+    d.setDate(this.weekStart.getDate() + offset);
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }
+
+  formatDate(d: Date): string {
+    return d.toLocaleDateString('en-CA'); 
+  }
+
+  normalizeTimeString(t: string | undefined | null): string {
+    if (!t) return '';
+    const hhmm = t.split('T').pop()?.split('.')[0];
+    const parts = (hhmm ?? t).split(':');
+    if (parts.length >= 2) {
+      const hh = parts[0].padStart(2, '0');
+      const mm = parts[1].padStart(2, '0');
+      return `${hh}:${mm}`;
+    }
+    return t;
+  }
+
+  isPast(slot: any) {
+    if (!slot) return false;
+    const dt = new Date(`${slot.date}T${slot._end || this.normalizeTimeString(slot.endTime)}:00`);
+    return dt.getTime() < Date.now();
+  }
+
+  isBooked(slot: any) {
+    return slot && !!slot.booked;
+  }
+
+  slotLabel(slot: any) {
+    if (!slot) return '';
+    return `${slot._start} – ${slot._end}`;
+  }
+
+  slotPatientName(slot: any) {
+    if (!slot || !slot.patient) return '';
+    const p = slot.patient;
+    if (p.user) return `${p.user.firstName ?? ''} ${p.user.lastName ?? ''}`.trim();
+    return `${p.firstName ?? ''} ${p.lastName ?? ''}`.trim();
+  }
+
+  addMinutes(time: string, minutes: number): string {
+    const [h, m] = time.split(':').map(Number);
+    const d = new Date();
+    d.setHours(h, m + minutes);
+    return `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
   }
 
 
-  ngOnInit(){
-      this.loadAppointments();
-  }
 
   private getAuthHeaders(): HttpHeaders {
     const token = localStorage.getItem('token');
-    return new HttpHeaders({'Authorization': `Bearer ${token}`});
+    return new HttpHeaders({ 'Authorization': `Bearer ${token}` });
   }
 
-
-  loadAppointments(){
-    const headers = this.getAuthHeaders();
-    this.http.get<any[]>('http://localhost:5050/doctor/appointments', {headers})
-    .subscribe({
-      next: (res) => this.appointments = res,
-      error: (err) => console.log('Error loading appointments', err)
-    });
-  }
-
-  logout(){
+  logout() {
     localStorage.clear();
     this.router.navigate(['/login']);
   }
-
 }

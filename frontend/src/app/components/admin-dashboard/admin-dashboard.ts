@@ -38,7 +38,7 @@ export class AdminDashboard implements OnInit {
     password: new FormControl('', Validators.required),
     title: new FormControl('', Validators.required),
     departmentId: new FormControl('', Validators.required),
-    timetableTemplate: new FormControl('MON_FRI_9_18', Validators.required),
+    timetableTemplate: new FormControl('WEEKDAY_9_18', Validators.required)
   });
 
   editingDoctor: any = null;
@@ -48,38 +48,52 @@ export class AdminDashboard implements OnInit {
     lastName: new FormControl('', Validators.required),
     phone: new FormControl('', Validators.required),
     departmentId: new FormControl(''),
-    timetableTemplate: new FormControl('', Validators.required)
+    timetableTemplate: new FormControl('', Validators.required),
+    password: new FormControl('') 
   });
 
   constructor(private http: HttpClient, private router: Router) { }
 
   ngOnInit() {
     this.loadData();
+    this.addDoctorForm.valueChanges.subscribe(val => {
+      console.log('Doctor form values changed:', val);
+    });
+
+    this.editDoctorForm.valueChanges.subscribe(val => {
+      console.log('Edit doctor form values changed:', val);
+    });
     const headers = this.getAuthHeaders();
+
     this.http.get<string[]>('http://localhost:5050/admin/timetable-templates', { headers })
       .subscribe({
-        next: (res) => this.timetableTemplates = res,
+        next: (res) => {
+          this.timetableTemplates = res;
+          if (!this.addDoctorForm.value.timetableTemplate) {
+            this.addDoctorForm.patchValue({ timetableTemplate: res[0] });
+          }
+        },
         error: (err) => console.error(err)
       });
   }
 
   private updateFilteredServices() {
-  if (this.selectedDepartmentId) {
-    this.filteredServices = this.services.filter(
-      s => s.department?.id === this.selectedDepartmentId
-    );
-  } else {
-    this.filteredServices = [];
+    if (this.selectedDepartmentId) {
+      this.filteredServices = this.services.filter(
+        s => s.department?.id === this.selectedDepartmentId
+      );
+    } else {
+      this.filteredServices = [];
+    }
   }
-}
 
-  
+
 
   onDepartmentChange() {
-  const deptId = this.addServiceForm.value.departmentId;
-  this.selectedDepartmentId = deptId ? +deptId : null;
-  this.updateFilteredServices();
-}
+    const deptId = this.addServiceForm.value.departmentId;
+    this.selectedDepartmentId = deptId ? +deptId : null;
+    this.updateFilteredServices();
+  }
 
   private getAuthHeaders(): HttpHeaders {
     const token = localStorage.getItem('token');
@@ -92,32 +106,18 @@ export class AdminDashboard implements OnInit {
     const headers = this.getAuthHeaders();
 
     this.http.get<any[]>('http://localhost:5050/admin/departments', { headers })
-      .subscribe({
-        next: (res) => this.departments = res,
-        error: (err) => console.log(err)
-      });
+      .subscribe({ next: res => this.departments = res, error: err => console.log(err) });
 
     this.http.get<any[]>('http://localhost:5050/admin/services', { headers })
-      .subscribe({
-        next: (res) => this.services = res,
-        error: (err) => console.error(err)
-      });
+      .subscribe({ next: res => { this.services = res; this.updateFilteredServices(); }, error: err => console.error(err) });
 
     this.http.get<any[]>('http://localhost:5050/admin/doctors', { headers })
       .subscribe({
-        next: (res) => this.doctors = res,
-        error: (err) => console.error(err)
-      });
-    this.http.get<any[]>('http://localhost:5050/admin/doctors', { headers })
-      .subscribe({
-        next: (res) => {
+        next: res => {
+          console.log('Doctors from backend:', res);
           this.doctors = res;
-          if (this.editingDoctor) {
-            const exists = res.some(d => d.id === this.editingDoctor.id);
-            if (!exists) this.closeEdit();
-          }
         },
-        error: (err) => console.error(err)
+        error: err => console.error(err)
       });
   }
 
@@ -157,65 +157,84 @@ export class AdminDashboard implements OnInit {
   }
 
   addService() {
-  const headers = this.getAuthHeaders();
+    const headers = this.getAuthHeaders();
 
-  const dept = this.departments.find(d => d.id == this.addServiceForm.value.departmentId);
-  if (!dept) {
-    alert('Department not found!');
-    return;
+    const dept = this.departments.find(d => d.id == this.addServiceForm.value.departmentId);
+    if (!dept) {
+      alert('Department not found!');
+      return;
+    }
+
+    const price = Number(this.addServiceForm.value.price);
+    if (isNaN(price) || price <= 0) {
+      alert('Price must be a positive number');
+      return;
+    }
+
+    const payload = {
+      name: this.addServiceForm.value.name ?? '',
+      price: price,
+      department: { id: dept.id }
+    };
+
+    this.http.post<any>('http://localhost:5050/admin/services', payload, { headers })
+      .subscribe({
+        next: (service) => {
+          service.department = dept;
+          this.services.push(service);
+          this.updateFilteredServices();
+          this.addServiceForm.reset();
+        },
+        error: (err) => console.error('Error adding service:', err)
+      });
   }
-
-  const price = Number(this.addServiceForm.value.price);
-  if (isNaN(price) || price <= 0) {
-    alert('Price must be a positive number');
-    return;
-  }
-
-  const payload = {
-    name: this.addServiceForm.value.name ?? '',
-    price: price,
-    department: { id: dept.id }
-  };
-
-  this.http.post<any>('http://localhost:5050/admin/services', payload, { headers })
-  .subscribe({
-    next: (service) => {
-      service.department = dept;
-      this.services.push(service);
-      this.updateFilteredServices();
-      this.addServiceForm.reset();
-    },
-    error: (err) => console.error('Error adding service:', err)
-  });
-}
 
   deleteService(id: number) {
     const headers = this.getAuthHeaders();
     this.http.delete(`http://localhost:5050/admin/services/${id}`, { headers })
-  .subscribe(() => {
-    this.services = this.services.filter(s => s.id !== id);
-    this.updateFilteredServices();
-  });
+      .subscribe(() => {
+        this.services = this.services.filter(s => s.id !== id);
+        this.updateFilteredServices();
+      });
   }
 
   addDoctor() {
     const headers = this.getAuthHeaders();
+    const deptId = Number(this.addDoctorForm.value.departmentId);
+    const dept = this.departments.find(d => d.id === deptId);
 
-    const dept = this.departments.find(d => d.id == this.addDoctorForm.value.departmentId);
+    if (!dept) {
+      console.error('Department not found for ID', deptId);
+      alert('Select a valid department!');
+      return;
+    }
+
+    if (!dept) {
+      alert('Please select a valid department');
+      return;
+    }
 
     const payload = {
       user: {
-        firstName: this.addDoctorForm.value.firstName,
-        lastName: this.addDoctorForm.value.lastName,
-        email: this.addDoctorForm.value.email,
-        phone: this.addDoctorForm.value.phone,
-        password: this.addDoctorForm.value.password
+        firstName: this.addDoctorForm.value.firstName?.trim(),
+        lastName: this.addDoctorForm.value.lastName?.trim(),
+        email: this.addDoctorForm.value.email?.trim(),
+        phone: this.addDoctorForm.value.phone?.trim(),
+        password: this.addDoctorForm.value.password?.trim()
       },
-      title: this.addDoctorForm.value.title,
-      department: { id: dept?.id },
+      title: this.addDoctorForm.value.title?.trim(),
+      department: { id: Number(this.addDoctorForm.value.departmentId) },
       timetableTemplate: this.addDoctorForm.value.timetableTemplate
     };
 
+    console.log('Payload to send:', payload);
+
+    if (!payload.user.firstName || !payload.user.lastName || !payload.user.email ||
+      !payload.user.password || !payload.title) {
+      alert('Please fill all required fields');
+      return;
+    }
+    console.log('Payload to send:', payload);
     this.http.post('http://localhost:5050/admin/doctors', payload, { headers })
       .subscribe({
         next: () => {
@@ -239,12 +258,13 @@ export class AdminDashboard implements OnInit {
   editDoctor(doc: any) {
     this.editingDoctor = doc;
 
-    this.editDoctorForm.setValue({
+    this.editDoctorForm.patchValue({
       firstName: doc.user.firstName,
       lastName: doc.user.lastName,
       phone: doc.user.phone,
       departmentId: doc.department?.id || '',
-      timetableTemplate: doc.timetableTemplate
+      timetableTemplate: doc.timetableTemplate,
+      password: ''  
     });
   }
 
@@ -259,6 +279,7 @@ export class AdminDashboard implements OnInit {
         firstName: this.editDoctorForm.value.firstName,
         lastName: this.editDoctorForm.value.lastName,
         phone: this.editDoctorForm.value.phone,
+        password: this.editDoctorForm.value.password || null 
       },
       department: this.editDoctorForm.value.departmentId
         ? { id: this.editDoctorForm.value.departmentId }
@@ -270,7 +291,7 @@ export class AdminDashboard implements OnInit {
       .subscribe({
         next: () => {
           this.closeEdit();
-          this.loadData(); // Reload doctors
+          this.loadData();
         },
         error: (err) => console.error(err)
       });

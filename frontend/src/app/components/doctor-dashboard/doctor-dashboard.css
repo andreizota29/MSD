@@ -1,0 +1,75 @@
+.week-controls {
+  display:flex;
+  gap:12px;
+  align-items:center;
+  margin-bottom:10px;
+}
+
+.timetable {
+  width:100%;
+  border-collapse:collapse;
+  font-family: Arial, sans-serif;
+}
+
+.timetable th, .timetable td {
+  border: 1px solid #ddd;
+  padding:6px;
+  text-align:center;
+  vertical-align: top;
+}
+
+.time-col {
+  width: 90px;
+  font-weight: bold;
+  background: #f6f6f6;
+}
+
+.date-sub {
+  font-size: 11px;
+  color: #666;
+}
+
+.slot {
+  padding:6px;
+  border-radius:6px;
+  min-height:42px; /* visually taller */
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  align-items:center;
+}
+
+/* states */
+.slot-free {
+  background-color: #e6f7e6; /* light green */
+  color: #045a04;
+  border: 1px solid #b7e0b7;
+}
+
+.slot-booked {
+  background-color: #fde6e6; /* light red */
+  color: #8b0000;
+  border: 1px solid #f0b7b7;
+}
+
+.slot-past {
+  background-color: #eeeeee;
+  color: #666;
+  border: 1px solid #ddd;
+}
+
+/* empty */
+.empty-slot {
+  color:#bbb;
+  background: transparent;
+  border: none;
+}
+
+.slot-time {
+  font-weight:600;
+}
+
+.slot-info {
+  font-size: 12px;
+  margin-top:4px;
+}

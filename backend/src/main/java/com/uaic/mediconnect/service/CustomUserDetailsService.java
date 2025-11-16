@@ -1,6 +1,9 @@
 package com.uaic.mediconnect.service;
 
+import com.uaic.mediconnect.entity.Doctor;
+import com.uaic.mediconnect.entity.Role;
 import com.uaic.mediconnect.entity.User;
+import com.uaic.mediconnect.repository.DoctorRepo;
 import com.uaic.mediconnect.repository.UserRepo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.GrantedAuthority;
@@ -19,10 +22,23 @@ public class CustomUserDetailsService implements UserDetailsService {
     @Autowired
     private UserRepo userRepo;
 
+    @Autowired
+    private DoctorRepo doctorRepo;
+
     @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
         User user = userRepo.findByEmail(email)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found: " + email));
+
+        // Check if user is a doctor and active
+        if (user.getRole() == Role.DOCTOR) {
+            Doctor doctor = doctorRepo.findByUser_UserId(user.getUserId())
+                    .orElseThrow(() -> new UsernameNotFoundException("Doctor account not found"));
+
+            if (!doctor.isActive()) {
+                throw new UsernameNotFoundException("Doctor account is inactive");
+            }
+        }
 
         Collection<GrantedAuthority> authorities = List.of(
                 new SimpleGrantedAuthority("ROLE_" + user.getRole().name())

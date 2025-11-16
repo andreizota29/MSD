@@ -3,42 +3,74 @@ package com.uaic.mediconnect.service;
 import com.uaic.mediconnect.entity.Doctor;
 import com.uaic.mediconnect.entity.DoctorSchedule;
 import com.uaic.mediconnect.entity.TimetableTemplate;
+import org.springframework.stereotype.Service;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
 
+@Service
 public class ScheduleGenerator {
 
-    public static List<DoctorSchedule> generateSchedule(Doctor doctor, TimetableTemplate timetableTemplate){
-        List<DoctorSchedule> scheduleList = new ArrayList<>();
+    public List<DoctorSchedule> generate90Days(Doctor doctor){
 
-        LocalDate today = LocalDate.now();
-        LocalDate endDate = today.plusMonths(2);
+        List<DoctorSchedule> list = new ArrayList<>();
+        LocalDate startDate = LocalDate.now();
+        LocalDate endDate = startDate.plusDays(90);
 
-        Set<DayOfWeek> workingDays = TimetableHelper.getWorkingDays(timetableTemplate);
-        LocalTime start = TimetableHelper.getStartTime(timetableTemplate);
-        LocalTime end = TimetableHelper.getEndTime(timetableTemplate);
+        Set<DayOfWeek> workingDays = getWorkingDays(doctor.getTimetableTemplate());
+        LocalTime start = getStartTime(doctor.getTimetableTemplate());
+        LocalTime end = getEndTime(doctor.getTimetableTemplate());
 
-        for(LocalDate date = today; !date.isAfter(endDate); date = date.plusDays(1)){
-            if(!workingDays.contains(date.getDayOfWeek())) continue;
+        for (LocalDate d = startDate; !d.isAfter(endDate); d = d.plusDays(1)) {
+
+            if (!workingDays.contains(d.getDayOfWeek()))
+                continue;
+
             LocalTime time = start;
-            while(time.isBefore(end)) {
+
+            while (time.isBefore(end)) {
                 DoctorSchedule slot = new DoctorSchedule();
                 slot.setDoctor(doctor);
-                slot.setDate(date);
+                slot.setDate(d);
                 slot.setStartTime(time);
                 slot.setEndTime(time.plusMinutes(30));
                 slot.setBooked(false);
                 slot.setPatient(null);
-                scheduleList.add(slot);
+
+                list.add(slot);
+
                 time = time.plusMinutes(30);
             }
-
         }
-        return  scheduleList;
+
+        return list;
+    }
+
+    private Set<DayOfWeek> getWorkingDays(TimetableTemplate t) {
+        return switch (t) {
+            case WEEKDAY_9_18, WEEKDAY_8_17 ->
+                    EnumSet.range(DayOfWeek.MONDAY, DayOfWeek.FRIDAY);
+            case WEEKEND_9_18, WEEKEND_8_17 ->
+                    EnumSet.of(DayOfWeek.SATURDAY, DayOfWeek.SUNDAY);
+        };
+    }
+
+    private LocalTime getStartTime(TimetableTemplate t) {
+        return switch (t) {
+            case WEEKDAY_8_17, WEEKEND_8_17 -> LocalTime.of(8, 0);
+            case WEEKDAY_9_18, WEEKEND_9_18 -> LocalTime.of(9, 0);
+        };
+    }
+
+    private LocalTime getEndTime(TimetableTemplate t) {
+        return switch (t) {
+            case WEEKDAY_8_17, WEEKEND_8_17 -> LocalTime.of(17, 0);
+            case WEEKDAY_9_18, WEEKEND_9_18 -> LocalTime.of(18, 0);
+        };
     }
 }
