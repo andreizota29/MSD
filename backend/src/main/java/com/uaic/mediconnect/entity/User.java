@@ -10,7 +10,7 @@ import lombok.Setter;
 @Entity
 @Getter
 @Setter
-@Table(name="user")
+@Table(name="users")
 @JsonIgnoreProperties({"roles"})
 public class User {
 

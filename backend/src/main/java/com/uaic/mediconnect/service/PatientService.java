@@ -34,5 +34,5 @@ public class PatientService {
         patientRepo.delete(patient);
     }
 
-
+    public Optional<Patient> findByCnp(String cnp) { return patientRepo.findByCnp(cnp); }
 }

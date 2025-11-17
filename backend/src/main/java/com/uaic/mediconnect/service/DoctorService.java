@@ -57,8 +57,5 @@ public class DoctorService {
                 .toList();
     }
 
-
-
-
-
+    public Optional<Doctor> findByUserEmail(String email) { return doctorRepo.findByUserEmail(email);};
 }
