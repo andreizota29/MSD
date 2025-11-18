@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Component } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
+import { Alert } from '../../services/alert';
 
 @Component({
   selector: 'app-reset-password',
@@ -20,13 +21,13 @@ export class ResetPassword {
 
   private token: string | null = null;
 
-  constructor(private route: ActivatedRoute, private http: HttpClient, private router: Router) {
+  constructor(private route: ActivatedRoute, private http: HttpClient, private router: Router, private alert: Alert) {
     this.token = this.route.snapshot.queryParamMap.get('token');
   }
   public handleReset() {
     if (this.form.invalid) return;
     if (this.form.value.newPassword !== this.form.value.confirmPassword) {
-      alert("Passwords do not match");
+      this.alert.error("Passwords do not match");
       return;
     }
 
@@ -35,13 +36,13 @@ export class ResetPassword {
       newPassword: this.form.value.newPassword
     }).subscribe({
       next: () => {
-        alert("Password changed successfully");
+        this.alert.success("Password changed successfully");
         localStorage.clear();
         this.router.navigate(['/login']);
       },
       error: err => {
         console.error(err);
-        alert("Failed to reset password");
+        this.alert.error("Failed to reset password");
       }
     });
   }

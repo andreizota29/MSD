@@ -1,5 +1,7 @@
 package com.uaic.mediconnect.service;
 
+import com.uaic.mediconnect.dto.ClinicServiceDTO;
+import com.uaic.mediconnect.dto.DepartmentDTO;
 import com.uaic.mediconnect.entity.ClinicService;
 import com.uaic.mediconnect.repository.ClinicServiceRepo;
 import jakarta.transaction.Transactional;
@@ -37,5 +39,26 @@ public class ClinicServiceService {
                 .forEach(appointmentService::cancelAppointment);
 
         serviceRepo.delete(service);
+    }
+
+    public List<ClinicServiceDTO> getAllServicesAsDTO() {
+        List<ClinicService> entities = serviceRepo.findAll();
+        return entities.stream().map(this::convertToDTO).toList();
+    }
+
+    private ClinicServiceDTO convertToDTO(ClinicService entity){
+        ClinicServiceDTO dto = new ClinicServiceDTO();
+        dto.setId(entity.getId());
+        dto.setName(entity.getName());
+        dto.setPrice(entity.getPrice());
+
+        if (entity.getDepartment() != null) {
+            DepartmentDTO depDto = new DepartmentDTO();
+            depDto.setId(entity.getDepartment().getId());
+            depDto.setName(entity.getDepartment().getName());
+
+            dto.setDepartment(depDto);
+        }
+        return dto;
     }
 }

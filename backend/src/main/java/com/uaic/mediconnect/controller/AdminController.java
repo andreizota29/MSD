@@ -1,11 +1,10 @@
 package com.uaic.mediconnect.controller;
 
+import com.uaic.mediconnect.dto.*;
 import com.uaic.mediconnect.entity.*;
+import com.uaic.mediconnect.mapper.DtoMapper;
 import com.uaic.mediconnect.repository.*;
-import com.uaic.mediconnect.service.AppointmentService;
-import com.uaic.mediconnect.service.DepartmentService;
-import com.uaic.mediconnect.service.ScheduleGenerator;
-import com.uaic.mediconnect.service.UserService;
+import com.uaic.mediconnect.service.*;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -49,9 +48,18 @@ public class AdminController {
     @Autowired
     private DepartmentService departmentService;
 
+    @Autowired
+    private ClinicServiceService clinicServiceService;
+
+    @Autowired
+    private DtoMapper mapper;
+
     @GetMapping("/departments")
-    public ResponseEntity<List<Department>> getAllDepartments(){
-        return ResponseEntity.ok(departmentRepo.findAll());
+    public ResponseEntity<List<DepartmentDTO>> getAllDepartments(){
+        List<DepartmentDTO> dtos = departmentRepo.findAll().stream()
+                .map(mapper::toDTO)
+                .toList();
+        return ResponseEntity.ok(dtos);
     }
 
     @PostMapping(value = "/departments", consumes = "application/json", produces = "application/json")
@@ -59,7 +67,9 @@ public class AdminController {
         if (department.getName() == null || department.getName().isBlank()) {
             return ResponseEntity.badRequest().body("Department name is required");
         }
-        return ResponseEntity.status(HttpStatus.CREATED).body(departmentRepo.save(department));
+        Department saved = departmentRepo.save(department);
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(mapper.toDTO(saved));
     }
 
 
@@ -77,21 +87,22 @@ public class AdminController {
         }
     }
 
-    @PostMapping(value = "/services", consumes = "application/json", produces = "application/json")
-    public ResponseEntity<ClinicService> createOrUpdateService(@RequestBody ClinicService serviceData) {
-        if (serviceData.getName() == null || serviceData.getName().isBlank()) {
-            return ResponseEntity.badRequest().build();
+    @PostMapping("/services")
+    public ResponseEntity<?> createService(@RequestBody CreateServiceRequest req) {
+        if (req.getName() == null || req.getDepartment() == null) {
+            return ResponseEntity.badRequest().body("Missing data");
         }
 
-        var departmentOpt = departmentRepo.findById(serviceData.getDepartment().getId());
-        if (departmentOpt.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
-        }
+        Department dept = departmentRepo.findById(req.getDepartment().getId())
+                .orElseThrow(() -> new RuntimeException("Dept not found"));
 
-        serviceData.setDepartment(departmentOpt.get());
-        var savedService = clinicServiceRepo.save(serviceData);
+        ClinicService service = new ClinicService();
+        service.setName(req.getName());
+        service.setPrice(req.getPrice());
+        service.setDepartment(dept);
 
-        return ResponseEntity.status(HttpStatus.CREATED).body(savedService);
+        ClinicService saved = clinicServiceRepo.save(service);
+        return ResponseEntity.status(HttpStatus.CREATED).body(mapper.toDTO(saved));
     }
 
     @DeleteMapping("/services/{id}")
@@ -100,62 +111,60 @@ public class AdminController {
         if (serviceOpt.isEmpty()) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Service not found");
         }
-
         clinicServiceRepo.deleteById(id);
         return ResponseEntity.ok(Map.of("message", "Service deleted successfully"));
     }
 
     @GetMapping("/services")
-    public ResponseEntity<List<ClinicService>> getAllServices() {
-        List<ClinicService> services = clinicServiceRepo.findAll();
-        services.forEach(s -> {
-            Department dept = s.getDepartment();
-            if (dept != null) {
-                Department d = new Department();
-                d.setId(dept.getId());
-                d.setName(dept.getName());
-                s.setDepartment(d);
-            }
-        });
-        return ResponseEntity.ok(services);
+    public ResponseEntity<List<ClinicServiceDTO>> getAllServices() {
+        List<ClinicServiceDTO> dtos = clinicServiceRepo.findAll().stream()
+                .map(mapper::toDTO)
+                .toList();
+        return ResponseEntity.ok(dtos);
     }
 
     @GetMapping("/doctors")
-    public ResponseEntity<List<Doctor>> getAllDoctors() {
-        List<Doctor> doctors = doctorRepo.findByActiveTrue();
-        doctors.forEach(d -> System.out.println(d.getDepartment()));
-        return ResponseEntity.ok(doctors);
+    public ResponseEntity<List<DoctorDTO>> getAllDoctors() {
+        List<DoctorDTO> dtos = doctorRepo.findByActiveTrue().stream()
+                .map(mapper::toDTO)
+                .toList();
+        return ResponseEntity.ok(dtos);
     }
 
     @PostMapping("/doctors")
-    public ResponseEntity<?> createDoctor(@RequestBody Doctor doctor) {
-        try {
-            if (doctor.getUser() == null || doctor.getDepartment() == null) {
-                return ResponseEntity.badRequest().body("Doctor must have a user and department assigned");
-            }
-
-            if (!departmentRepo.existsById(doctor.getDepartment().getId())) {
-                return ResponseEntity.badRequest().body("Department not found");
-            }
-
-            if (doctor.getUser().getPassword() == null || doctor.getUser().getPassword().isBlank()) {
-                return ResponseEntity.badRequest().body("Password is required");
-            }
-            doctor.getUser().setPassword(passwordEncoder.encode(doctor.getUser().getPassword()));
-            doctor.getUser().setRole(Role.DOCTOR);
-            Doctor savedDoctor = doctorRepo.save(doctor);
-
-            List<DoctorSchedule> slots = scheduleGenerator.generate90Days(savedDoctor);
-            scheduleRepo.saveAll(slots);
-
-            return ResponseEntity.status(HttpStatus.CREATED).body(savedDoctor);
-        } catch (Exception e) {
-            e.printStackTrace();
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Error: " + e.getMessage());
+    public ResponseEntity<?> createDoctor(@RequestBody CreateDoctorRequest req) {
+        if (req.getUserData() == null || req.getDepartment() == null) {
+            return ResponseEntity.badRequest().body("Invalid data");
         }
+        User user = new User();
+        user.setFirstName(req.getUserData().getFirstName());
+        user.setLastName(req.getUserData().getLastName());
+        user.setEmail(req.getUserData().getEmail());
+        user.setPhone(req.getUserData().getPhone());
+        user.setPassword(passwordEncoder.encode(req.getUserData().getPassword()));
+        user.setRole(Role.DOCTOR);
+        user.setProfileCompleted(true);
+
+        Department dept = departmentRepo.findById(req.getDepartment().getId())
+                .orElseThrow(() -> new RuntimeException("Department not found"));
+
+        Doctor doctor = new Doctor();
+        doctor.setUser(user);
+        doctor.setDepartment(dept);
+        doctor.setTitle(req.getTitle());
+        doctor.setTimetableTemplate(req.getTimetableTemplate());
+        doctor.setActive(true);
+
+        Doctor savedDoctor = doctorRepo.save(doctor);
+
+        List<DoctorSchedule> slots = scheduleGenerator.generate90Days(savedDoctor);
+        scheduleRepo.saveAll(slots);
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(mapper.toDTO(savedDoctor));
     }
 
     @DeleteMapping("/doctors/{id}")
+    @Transactional
     public ResponseEntity<?> deleteDoctor(@PathVariable Long id) {
         var doctorOpt = doctorRepo.findById(id);
         if (doctorOpt.isEmpty()) {
@@ -163,10 +172,20 @@ public class AdminController {
         }
 
         Doctor doctor = doctorOpt.get();
-        doctor.setActive(false);
-        doctorRepo.save(doctor);
+        scheduleRepo.deleteAllByDoctor(doctor);
 
-        return ResponseEntity.ok(Map.of("message", "Doctor deactivated successfully"));
+        List<Appointment> appointments = appointmentService.findByDoctor(doctor);
+        for (Appointment app : appointments) {
+            app.setDoctor(null);
+            appointmentService.save(app);
+
+            if (app.getStatus() == AppointmentStatus.SCHEDULED) {
+                app.setStatus(AppointmentStatus.CANCELLED);
+            }
+        }
+
+        doctorRepo.delete(doctor);
+        return ResponseEntity.ok(Map.of("message", "Doctor and User account deleted permanently"));
     }
 
     @PutMapping("/doctors/{id}")

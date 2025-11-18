@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
+import { Alert } from '../../services/alert';
 
 @Component({
   selector: 'app-doctor-dashboard',
@@ -15,14 +16,20 @@ export class DoctorDashboard implements OnInit {
   weekSlots: any[] = [];
   weekStart!: Date;
   weekDays = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+  minDate!: Date;
 
   times: string[] = [];
   slotsByDateTime: Map<string, Map<string, any>> = new Map();
 
-  constructor(private http: HttpClient, private router: Router) { }
+  constructor(private http: HttpClient, private router: Router, private alert: Alert) { }
+
+  get canGoBack(): boolean {
+    return this.weekStart.getTime() > this.minDate.getTime();
+  }
 
   ngOnInit() {
     this.initWeek();
+    this.minDate = new Date(this.weekStart);
     this.loadWeek();
   }
 
@@ -40,6 +47,7 @@ export class DoctorDashboard implements OnInit {
   }
 
   changeWeek(offset: number) {
+    if (offset < 0 && !this.canGoBack) return;
     this.weekStart = new Date(this.weekStart.getTime() + offset * 7 * 24 * 60 * 60 * 1000);
     this.loadWeek();
   }
@@ -154,13 +162,32 @@ export class DoctorDashboard implements OnInit {
     if (!slot) return '';
 
     if (slot.booked) {
-      const patientName = this.slotPatientName(slot) || 'Booked';
-      if (this.isPast(slot)) return `Completed – ${patientName}`; // past booked
-      return patientName; // upcoming booked
+      const details = this.getPatientAndService(slot);
+      
+      if (this.isPast(slot)) {
+        return `Completed – ${details}`; 
+      }
+      return details; 
     }
 
-    if (this.isPast(slot)) return 'Past'; // past free
-    return 'Free'; // upcoming free
+    if (this.isPast(slot)) return 'Past'; 
+    return 'Free'; 
+  }
+
+  getPatientAndService(slot: any): string {
+    if (!slot || !slot.patient) return 'Booked';
+
+    const p = slot.patient;
+    let name = '';
+    
+    if (p.user) {
+      name = `${p.user.firstName ?? ''} ${p.user.lastName ?? ''}`.trim();
+    } else {
+      name = `${p.firstName ?? ''} ${p.lastName ?? ''}`.trim();
+    }
+    const service = slot.serviceName ? ` (${slot.serviceName})` : '';
+
+    return name + service;
   }
 
   isBooked(slot: any) {

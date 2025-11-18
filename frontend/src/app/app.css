@@ -1,27 +1,30 @@
-:host {
-  display: block;
-  background-color: #f9f8f4; /* bone/white-ish */
-  min-height: 100vh;
-  font-family: 'Inter', sans-serif;
-}
-
 .app-header {
+  height: 64px;
+  background: #fff;
+  border-bottom: 1px solid #ddd;
   display: flex;
   align-items: center;
-  padding: 1rem 2rem;
-  background-color: #fff;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+  justify-content: space-between;
+  padding: 0 2rem;
 }
-
 .logo {
-  font-size: 1.5rem;
-  font-weight: 600;
+  font-weight: 700;
+  font-size: 1.2rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
   color: #333;
 }
 
-main {
+.nav-actions { display: flex; gap: 10px; }
+.nav-btn {
+  background: transparent;
+  border: 1px solid #eee;
   display: flex;
-  justify-content: center;
   align-items: center;
-  height: calc(100vh - 70px);
+  gap: 6px;
+  font-size: 0.85rem;
 }
+.nav-btn:hover { background: #f5f5f5; }
+.btn-logout { color: #d32f2f; border-color: #ffcdd2; }
+.btn-logout:hover { background: #ffebee; }

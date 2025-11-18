@@ -1,77 +1,104 @@
-<h2>Welcome, {{userName}}</h2>
-<p>Your role: {{role}}</p>
-<button (click)="logout()">Logout</button>
-<button (click)="editProfile()">Edit Profile</button>
-<button (click)="goToChangePassword()">Change Password</button>
+<div class="liquid-container patient-layout">
 
-<hr>
+  <div class="card">
+    <div class="card-header">
+      <h3><span class="material-icons">filter_alt</span> Selection</h3>
+    </div>
+    
+    <div class="card-controls">
+      <label>Department</label>
+      <select [(ngModel)]="selectedDepartmentId" (change)="onDepartmentChange()" style="margin-bottom: 10px;">
+        <option [ngValue]="null">-- Select Department --</option>
+        <option *ngFor="let d of departments" [ngValue]="d.id">{{d.name}}</option>
+      </select>
 
-<button (click)="showAppointments = false">Book Appointment</button>
-<button (click)="loadAppointments()">My Appointments</button>
-
-<div *ngIf="!showAppointments">
-  <label>Department:</label>
-  <select [(ngModel)]="selectedDepartmentId" (change)="onDepartmentChange()">
-    <option [ngValue]="null">-- Select Department --</option>
-    <option *ngFor="let d of departments" [ngValue]="d.id">{{d.name}}</option>
-  </select>
-
-  <label>Service:</label>
-  <select [(ngModel)]="selectedServiceId" (change)="loadSlots()">
-    <option [ngValue]="null">-- Select Service --</option>
-    <option *ngFor="let s of services" [ngValue]="s.id">{{s.name}}</option>
-  </select>
-
-  <hr>
-
-  <div *ngIf="selectedServiceId">
-    <button (click)="prevDay()">⬅ Previous Day</button>
-    <span>{{ formattedDate }}</span>
-    <button (click)="nextDay()">Next Day ➡</button>
-
-    <div *ngFor="let group of groupedSlots" class="doctor-group">
-      <h3>{{ group.doctor.user.firstName || 'Unknown' }} {{ group.doctor.user.lastName || '' }}</h3>
-      <div *ngFor="let slot of group.slots" class="slot-item">
-        <label>
-          <input type="radio" [name]="'slot-' + group.doctor.id" [(ngModel)]="selectedSlotId" [value]="slot.id">
-          {{ slot.startTime.substring(0,5) }} - {{ slot.endTime.substring(0,5) }}
-        </label>
-      </div>
-      <hr>
+      <label>Service</label>
+      <select [(ngModel)]="selectedServiceId" (change)="loadSlots()" [disabled]="!selectedDepartmentId">
+        <option [ngValue]="null">-- Select Service --</option>
+        <option *ngFor="let s of services" [ngValue]="s.id">{{s.name}}</option>
+      </select>
     </div>
 
-    <button (click)="confirmAppointment()" [disabled]="!selectedSlotId">Confirm Appointment</button>
-  </div>
-</div>
+    <div class="card-body-scroll" style="background: #fafafa; padding: 1rem;">
+       <button class="btn-primary" style="width: 100%; margin-bottom: 1rem;" 
+               (click)="toggleAppointments()">
+         {{ showAppointments ? 'Hide My Appointments' : 'View My Appointments' }}
+       </button>
 
-<div *ngIf="showAppointments">
-  <h3>My Appointments</h3>
-  <table>
-    <thead>
-      <tr>
-        <th>Date</th>
-        <th>Time</th>
-        <th>Doctor</th>
-        <th>Department</th>
-        <th>Service</th>
-        <th>Price</th>
-        <th>Status</th>
-        <th>Action</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr *ngFor="let a of appointments">
-        <td>{{ a.doctorSchedule.date }}</td>
-        <td>{{ a.doctorSchedule.startTime | slice:0:5 }} - {{ a.doctorSchedule.endTime | slice:0:5 }}</td>
-        <td>{{ a.doctor.user.firstName }} {{ a.doctor.user.lastName }}</td>
-        <td>{{ a.service.department.name || 'N/A' }}</td>
-        <td>{{ a.service.name }}</td>
-        <td>{{ a.service.price | currency:'RON':'symbol':'1.2-2' }}</td>
-        <td>{{ a.status }}</td>
-        <td>
-          <button *ngIf="a.status === 'SCHEDULED'" (click)="cancelAppointment(a.id)">Cancel</button>
-        </td>
-      </tr>
-    </tbody>
-  </table>
+       <div *ngIf="showAppointments">
+          <h4 style="margin-top:0; border-bottom:1px solid #ddd; padding-bottom:5px;">My Appointments</h4>
+          
+          <div *ngIf="appointments.length === 0" style="text-align:center; color:#999; font-size:0.9rem; padding:10px;">
+             No appointments found.
+          </div>
+
+          <div *ngFor="let a of appointments" class="card" style="margin-bottom:10px; padding:10px; border:1px solid #ddd; box-shadow:none;">
+             
+             <div style="font-weight:600; font-size:0.9rem">{{a.service.name}}</div>
+             
+             <div style="font-size:0.8rem; color:#666">
+                {{a.doctorSchedule.date}} @ {{a.doctorSchedule.startTime}}
+             </div>
+             
+             <div style="font-size:0.8rem; margin-top:4px; color: #333;">
+                Dr. {{a.doctor.user.lastName}}
+             </div>
+             
+             <button *ngIf="a.status === 'SCHEDULED'" (click)="cancelAppointment(a.id)" 
+                     style="margin-top:8px; font-size:0.75rem; padding: 6px; width:100%;" class="btn-danger">
+               Cancel Appointment
+             </button>
+             
+             <div *ngIf="a.status !== 'SCHEDULED'" style="font-size:0.8rem; margin-top:5px; color:#666;">
+                Status: {{a.status}}
+             </div>
+          </div>
+       </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="day-nav" *ngIf="selectedServiceId">
+       <button class="btn-icon" (click)="prevDay()"><span class="material-icons">chevron_left</span></button>
+       <div class="current-date"><span class="material-icons" style="vertical-align:middle; font-size:18px">event</span> {{ formattedDate }}</div>
+       <button class="btn-icon" (click)="nextDay()"><span class="material-icons">chevron_right</span></button>
+    </div>
+
+    <div class="card-body-scroll" *ngIf="selectedServiceId; else noService">
+       
+       <div *ngIf="groupedSlots.length === 0" style="padding: 2rem; text-align: center; color: #999;">
+          No slots available for this date. Try the next day.
+       </div>
+
+       <div *ngFor="let group of groupedSlots" class="doctor-card">
+          <div class="doctor-header">
+             <span class="material-icons">person</span>
+             Dr. {{ group.doctor.user.firstName }} {{ group.doctor.user.lastName }}
+          </div>
+          
+          <div class="slot-grid">
+             <div *ngFor="let slot of group.slots" 
+                  class="slot-btn"
+                  [class.selected]="selectedSlotId === slot.id"
+                  (click)="selectSlot(slot.id)">
+                {{ slot.startTime.substring(0,5) }}
+             </div>
+          </div>
+       </div>
+    </div>
+
+    <div style="padding: 1rem; border-top: 1px solid #eee; text-align: right;" *ngIf="selectedServiceId">
+       <button class="btn-primary" (click)="confirmAppointment()" [disabled]="!selectedSlotId">
+         Confirm Booking
+       </button>
+    </div>
+
+    <ng-template #noService>
+      <div style="display: flex; justify-content:center; align-items:center; height: 100%; color: #aaa; flex-direction: column;">
+        <span class="material-icons" style="font-size: 48px;">touch_app</span>
+        <p>Select a Service to view availability</p>
+      </div>
+    </ng-template>
+  </div>
+
 </div>

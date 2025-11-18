@@ -1,43 +1,70 @@
-<h3>Weekly Timetable</h3>
+<div class="liquid-container">
+  
+  <div class="card" style="height: 100%;">
+    
+    <div class="card-header">
+      <h3><span class="material-icons">calendar_today</span> Weekly Timetable</h3>
+    </div>
 
-<button (click)="goToChangePassword()">Change Password</button>
+    <div class="week-controls">
+      <button class="btn-icon" 
+              (click)="changeWeek(-1)" 
+              title="Previous Week"
+              [disabled]="!canGoBack"
+              [style.opacity]="!canGoBack ? '0.3' : '1'"
+              [style.cursor]="!canGoBack ? 'not-allowed' : 'pointer'">
+        <span class="material-icons">chevron_left</span>
+      </button>
+      
+      <div class="week-range">
+        {{ weekStart | date:'MMMM d' }} – {{ getWeekDate(6) | date:'MMMM d, y' }}
+      </div>
+      
+      <button class="btn-icon" (click)="changeWeek(1)" title="Next Week">
+        <span class="material-icons">chevron_right</span>
+      </button>
+    </div>
 
-<div class="week-controls">
-  <button (click)="changeWeek(-1)">⬅ Previous Week</button>
-  <span>{{ weekStart | date:'MMM d' }} – {{ getWeekDate(6) | date:'MMM d' }}</span>
-  <button (click)="changeWeek(1)">Next Week ➡</button>
+    <div class="card-body-scroll" style="padding: 0;">
+      <table class="timetable">
+        <thead>
+          <tr>
+            <th class="time-col sticky-col">Time</th>
+            <th *ngFor="let d of weekDays; let i = index">
+              <div class="day-header">
+                <span class="day-name">{{ d }}</span>
+                <span class="day-date">{{ getWeekDate(i) | date:'dd MMM' }}</span>
+              </div>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let time of times">
+            <td class="time-col sticky-col">{{ time }}</td>
+            <td *ngFor="let dayIndex of [0,1,2,3,4,5,6]">
+              
+              <ng-container *ngIf="getSlot(dayIndex, time) as slot; else emptyCell">
+                <div class="slot" [ngClass]="{
+                    'slot-booked': isBooked(slot),
+                    'slot-free': !isBooked(slot) && !isPast(slot),
+                    'slot-past': isPast(slot)
+                  }" title="{{ slotLabel(slot) }}">
+                  
+                  <div class="slot-info">
+                    {{ slotStatus(slot) }}
+                  </div>
+                </div>
+              </ng-container>
+
+              <ng-template #emptyCell>
+                <div class="slot empty-slot"></div>
+              </ng-template>
+
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div>
 </div>
-
-<table class="timetable">
-  <thead>
-    <tr>
-      <th class="time-col">Time</th>
-      <th *ngFor="let d of weekDays">
-        {{ d }}
-        <div class="date-sub">{{ getWeekDate(weekDays.indexOf(d)) | date:'yyyy-MM-dd' }}</div>
-      </th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr *ngFor="let time of times">
-      <td class="time-col">{{ time }}</td>
-      <td *ngFor="let dayIndex of [0,1,2,3,4,5,6]">
-        <ng-container *ngIf="getSlot(dayIndex, time) as slot; else emptyCell">
-          <div class="slot" [ngClass]="{
-              'slot-booked': isBooked(slot),
-              'slot-free': !isBooked(slot) && !isPast(slot),
-              'slot-past': isPast(slot)
-            }" title="{{ slotLabel(slot) }}">
-            <div class="slot-time">{{ slotLabel(slot) }}</div>
-            <div class="slot-info">{{ slotStatus(slot) }}</div>
-          </div>
-        </ng-container>
-        <ng-template #emptyCell>
-          <div class="slot empty-slot">—</div>
-        </ng-template>
-      </td>
-    </tr>
-  </tbody>
-</table>
-
-<button (click)="logout()">Logout</button>

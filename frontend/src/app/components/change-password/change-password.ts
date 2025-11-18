@@ -3,6 +3,7 @@ import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Component } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
+import { Alert } from '../../services/alert';
 
 @Component({
   selector: 'app-change-password',
@@ -15,35 +16,35 @@ export class ChangePassword {
   newPassword = '';
   confirmPassword = '';
 
-  constructor(private http: HttpClient, private router : Router){
-    
-  }
+  constructor(private http: HttpClient, public router: Router, private alert: Alert) { }
 
-  getAuthHeaders(){
+  getAuthHeaders() {
     const token = localStorage.getItem('token');
-    return { headers : new HttpHeaders({ Authorization: `Bearer ${token}`})};
+    return { headers: new HttpHeaders({ Authorization: `Bearer ${token}` }) };
   }
 
   changePassword() {
-    if(this.newPassword !== this.confirmPassword){
-      alert('Password do not match');
+    if (this.newPassword !== this.confirmPassword) {
+      this.alert.error('Passwords do not match');
       return;
     }
-    if(this.newPassword.length < 8) {
-      alert('Password must be at least 6 characters long');
+    if (this.newPassword.length < 8) {
+      this.alert.error('Password must be at least 8 characters long');
       return;
     }
-    this.http.put('http://localhost:5050/auth/change-password', {newPassword: this.newPassword}, this.getAuthHeaders())
-    .subscribe({
+    
+    this.http.put('http://localhost:5050/auth/change-password', 
+      { newPassword: this.newPassword }, 
+      this.getAuthHeaders()
+    ).subscribe({
       next: () => {
-        alert('Password changed successfully!');
+        this.alert.success('Password changed successfully!');
         this.router.navigate(['/login']);
       },
       error: err => {
         console.log(err);
-        alert('Error changing password');
+        this.alert.error('Error changing password');
       }
     });
   }
-
 }

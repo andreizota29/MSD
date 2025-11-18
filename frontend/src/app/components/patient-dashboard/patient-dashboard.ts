@@ -3,6 +3,7 @@ import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Alert } from '../../services/alert';
 
 interface Department {
   id: number;
@@ -65,7 +66,7 @@ showAppointments = false;
   slots: Slot[] = [];
   selectedSlotId: number | null = null;
 
-  constructor(private router: Router, private http: HttpClient) { }
+  constructor(private router: Router, private http: HttpClient, private alert: Alert) { }
 
   ngOnInit() {
     this.loadUser();
@@ -93,6 +94,13 @@ showAppointments = false;
   logout() {
     localStorage.clear();
     this.router.navigate(['/login']);
+  }
+
+  toggleAppointments() {
+    this.showAppointments = !this.showAppointments;
+    if (this.showAppointments) {
+      this.loadAppointments(); 
+    }
   }
 
   editProfile() {
@@ -178,8 +186,8 @@ showAppointments = false;
   }
 
   confirmAppointment() {
-    if (!this.selectedSlotId) return alert("Please select a slot first");
-    if (!this.selectedServiceId) return alert("Please select a service first");
+    if (!this.selectedSlotId) return this.alert.error("Please select a slot first");
+    if (!this.selectedServiceId) return this.alert.error("Please select a service first");
 
     this.http.post('http://localhost:5050/patient/appointments/book', null, {
       params: {
@@ -189,8 +197,11 @@ showAppointments = false;
       ...this.getAuthHeaders()
     }).subscribe({
       next: res => {
-        alert('Appointment booked successfully!');
+        this.alert.success('Appointment booked successfully!');
 
+        if (this.showAppointments) {
+             this.loadAppointments(); 
+        }
         this.selectedDepartmentId = null;
         this.selectedServiceId = null;
         this.services = [];
@@ -202,7 +213,7 @@ showAppointments = false;
       },
       error: err => {
         console.log(err);
-        alert('Error booking appointment');
+        this.alert.error('Error booking appointment');
       }
     });
   }
@@ -221,12 +232,12 @@ cancelAppointment(id: number) {
   this.http.delete(`http://localhost:5050/patient/appointments/${id}`, this.getAuthHeaders())
     .subscribe({
       next: res => {
-        alert("Appointment cancelled successfully");
+        this.alert.success("Appointment cancelled successfully");
         this.loadAppointments(); 
       },
       error: err => {
         console.log(err);
-        alert("Cannot cancel appointment");
+        this.alert.error("Cannot cancel appointment");
       }
     });
 }

@@ -1,38 +1,42 @@
-<div *ngIf="!showForgotPassword">
-  <form [formGroup]="loginForm" (ngSubmit)="handleLogin()">
-      <label for="email">Email</label>
-      <input type="email" id="email" placeholder="Please enter your email" formControlName="email">
+<div class="auth-container" style="flex-direction: column; gap: 20px;">
+  
+  <div style="text-align: center; color: #333; margin-top: 30px;">
+    <h1 style="margin: 0; font-size: 2rem; font-weight: 700;">Welcome to MediConnect</h1>
+    <p style="margin: 5px 0 0 0; color: #666;">Your Health, Connected.</p>
+  </div>
+  <div class="card auth-card">
+    <div class="card-header" style="justify-content: center;">
+      <h3>Login</h3>
+    </div>
+    
+    <div style="padding: 2rem;">
+      <div *ngIf="!showForgotPassword">
+        <form [formGroup]="loginForm" (ngSubmit)="handleLogin()" style="display: flex; flex-direction: column; gap: 15px;">
+          <div>
+            <label>Email</label>
+            <input type="email" formControlName="email" placeholder="email@example.com">
+          </div>
+          <div>
+            <label>Password</label>
+            <input type="password" formControlName="password" placeholder="******">
+          </div>
+          <button type="submit" class="btn-primary" [disabled]="loginForm.invalid">Sign In</button>
 
-      <br/><br/>
+          <div style="display: flex; justify-content: space-between; font-size: 0.85rem; margin-top: 10px;">
+             <a (click)="toggleForgotPassword()" style="cursor:pointer; color: #666;">Forgot Password?</a>
+             <a routerLink="/register" style="cursor:pointer; color: #333; font-weight: 600;">Create Account</a>
+          </div>
+        </form>
+      </div>
 
-      <label for="password">Password</label>
-      <input type="password" id="password" placeholder="Please enter your password" formControlName="password">
-
-      <br/><br/>
-
-      <label for="role">Login as:</label>
-      <select id="role" formControlName="role">
-          <option value="PATIENT">Patient</option>
-          <option value="DOCTOR">Doctor</option>
-      </select>
-
-      <button type="submit" [disabled]="loginForm.invalid">Login</button>
-
-      <br/><br/>
-      <a href="javascript:void(0)" (click)="toggleForgotPassword()">Forgot password?</a>
-      <br/>
-      <a routerLink="/register">Register</a>
-  </form>
-</div>
-
-<div *ngIf="showForgotPassword">
-  <form [formGroup]="forgotForm" (ngSubmit)="handleForgotPassword()">
-      <label for="forgotEmail">Enter your email to reset password:</label>
-      <input type="email" id="forgotEmail" placeholder="Your email" formControlName="email">
-
-      <button type="submit" [disabled]="forgotForm.invalid">Send Reset Link</button>
-
-      <br/><br/>
-      <a href="javascript:void(0)" (click)="toggleForgotPassword()">Back to login</a>
-  </form>
+      <div *ngIf="showForgotPassword">
+         <form [formGroup]="forgotForm" (ngSubmit)="handleForgotPassword()">
+            <label>Enter email to reset password</label>
+            <input type="email" formControlName="email" style="margin: 10px 0;" placeholder="Your email">
+            <button class="btn-primary" style="width: 100%;" [disabled]="forgotForm.invalid">Send Link</button>
+            <a style="display:block; text-align:center; margin-top:15px; font-size:0.9rem; cursor:pointer" (click)="toggleForgotPassword()">Back to Login</a>
+         </form>
+      </div>
+    </div>
+  </div>
 </div>

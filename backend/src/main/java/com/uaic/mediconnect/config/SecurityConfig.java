@@ -61,15 +61,6 @@ public class SecurityConfig {
         return source;
     }
 
-//    @Bean
-//    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-//        http
-//                .csrf(csrf -> csrf.disable()) // disable CSRF for testing
-//                .authorizeHttpRequests(auth -> auth.anyRequest().permitAll());
-//
-//        return http.build();
-//    }
-
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();

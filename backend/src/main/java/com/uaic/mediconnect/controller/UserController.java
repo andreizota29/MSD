@@ -1,11 +1,10 @@
 package com.uaic.mediconnect.controller;
 
 import com.uaic.mediconnect.entity.User;
-import com.uaic.mediconnect.requests.LoginRequest;
+import com.uaic.mediconnect.dto.LoginRequest;
 import com.uaic.mediconnect.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;

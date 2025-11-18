@@ -1,6 +1,11 @@
 package com.uaic.mediconnect.controller;
 
+import com.uaic.mediconnect.dto.AppointmentDTO;
+import com.uaic.mediconnect.dto.ClinicServiceDTO;
+import com.uaic.mediconnect.dto.DepartmentDTO;
+import com.uaic.mediconnect.dto.DoctorScheduleDTO;
 import com.uaic.mediconnect.entity.*;
+import com.uaic.mediconnect.mapper.DtoMapper;
 import com.uaic.mediconnect.repository.DepartmentRepo;
 import com.uaic.mediconnect.repository.DoctorScheduleRepo;
 import com.uaic.mediconnect.security.JwtUtil;
@@ -14,9 +19,11 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/patient")
@@ -53,27 +60,19 @@ public class PatientController {
     @Autowired
     private EmailService emailService;
 
+    @Autowired
+    private DtoMapper mapper;
+
 
     @GetMapping("/me")
     public ResponseEntity<?> getMyProfile(HttpServletRequest request){
         var userOpt = authHelper.getPatientUserFromRequest(request);
-        if(userOpt.isEmpty()){
-            return ResponseEntity.status(401).body("Invalid or unauthorized user");
-        }
+        if(userOpt.isEmpty()) return ResponseEntity.status(401).body("Unauthorized");
 
-        var user = userOpt.get();
+        var patientOpt = patientService.findByUser(userOpt.get());
+        if(patientOpt.isEmpty()) return ResponseEntity.badRequest().body("Patient not found");
 
-        var patientOpt = patientService.findByUser(user);
-        if(patientOpt.isEmpty()){
-            return ResponseEntity.badRequest().body("Patient not found");
-        }
-        var patient = patientOpt.get();
-        Map<String, Object> response = Map.of(
-                "CNP", patient.getCnp(),
-                "dateOfBirth", patient.getDateOfBirth().toString()
-        );
-
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(mapper.toDTO(patientOpt.get()));
     }
 
 
@@ -92,23 +91,18 @@ public class PatientController {
     }
 
     @GetMapping("/appointments/list")
-    public ResponseEntity<?> getMyAppointmentsList(HttpServletRequest request) {
+    public ResponseEntity<List<AppointmentDTO>> getMyAppointmentsList(HttpServletRequest request) {
         var userOpt = authHelper.getPatientUserFromRequest(request);
-        if (userOpt.isEmpty()) {
-            return ResponseEntity.status(401).body("Unauthorized");
-        }
+        if (userOpt.isEmpty()) return ResponseEntity.status(401).build();
 
-        var patientOpt = patientService.findByUser(userOpt.get());
-        if (patientOpt.isEmpty()) {
-            return ResponseEntity.badRequest().body("Patient not found");
-        }
+        var patient = patientService.findByUser(userOpt.get()).get();
 
-        var appointments = appointmentService.findByPatient(patientOpt.get())
-                .stream()
+        List<AppointmentDTO> dtos = appointmentService.findByPatient(patient).stream()
                 .filter(a -> a.getStatus() == AppointmentStatus.SCHEDULED || a.getStatus() == AppointmentStatus.COMPLETED)
+                .map(mapper::toDTO)
                 .toList();
 
-        return ResponseEntity.ok(appointments);
+        return ResponseEntity.ok(dtos);
     }
 
     @PostMapping
@@ -157,28 +151,38 @@ public class PatientController {
 
         appointmentService.cancelAppointment(appointment);
 
+        try {
+            String to = patientOpt.get().getUser().getEmail();
+            String subject = "Appointment Cancelled";
+            String text = String.format(
+                    "Hello %s,\n\nYour appointment with Dr. %s %s on %s at %s has been successfully cancelled.\n\n",
+                    patientOpt.get().getUser().getFirstName(),
+                    appointment.getDoctor().getUser().getFirstName(),
+                    appointment.getDoctor().getUser().getLastName(),
+                    appointment.getDoctorSchedule().getDate(),
+                    appointment.getDoctorSchedule().getStartTime()
+            );
+            emailService.sendSimpleEmail(to, subject, text);
+        } catch (Exception e) {
+            System.err.println("Failed to send cancellation email: " + e.getMessage());
+        }
+
         return ResponseEntity.ok(Map.of("message", "Appointment cancelled successfully"));
     }
 
     @GetMapping("/departments")
-    public ResponseEntity<?> getAllDepartments() {
-        return ResponseEntity.ok(departmentRepo.findAll());
+    public ResponseEntity<List<DepartmentDTO>> getAllDepartments() {
+        List<DepartmentDTO> dtos = departmentRepo.findAll().stream()
+                .map(mapper::toDTO)
+                .toList();
+        return ResponseEntity.ok(dtos);
     }
-
     @GetMapping("/departments/{id}/services")
-    public ResponseEntity<?> getServicesByDepartment(@PathVariable Long id) {
-        var services = clinicServiceService.findAllByDepartment(id);
-        services.forEach(s -> {
-            Department dept = s.getDepartment();
-            if (dept != null) {
-                Department d = new Department();
-                d.setId(dept.getId());
-                d.setName(dept.getName());
-                s.setDepartment(d);
-            }
-            s.setAppointments(null);
-        });
-        return ResponseEntity.ok(services);
+    public ResponseEntity<List<ClinicServiceDTO>> getServicesByDepartment(@PathVariable Long id) {
+        List<ClinicServiceDTO> dtos = clinicServiceService.findAllByDepartment(id).stream()
+                .map(mapper::toDTO)
+                .toList();
+        return ResponseEntity.ok(dtos);
     }
 
     @PostMapping("/appointments/book")
@@ -189,22 +193,17 @@ public class PatientController {
     ) {
 
         var user = authHelper.getPatientUserFromRequest(request);
-        if (user.isEmpty())
-            return ResponseEntity.status(401).body("Unauthorized");
+        if (user.isEmpty()) return ResponseEntity.status(401).body("Unauthorized");
 
-        var patient = patientService.findByUser(user.get())
-                .orElse(null);
-
-        if (patient == null)
-            return ResponseEntity.badRequest().body("Patient not found");
+        var patient = patientService.findByUser(user.get()).orElse(null);
+        if (patient == null) return ResponseEntity.badRequest().body("Patient not found");
 
         ClinicService service = clinicServiceService.getServiceById(serviceId);
 
         DoctorSchedule slot = scheduleRepo.findById(slotId)
                 .orElseThrow(() -> new RuntimeException("Slot not found"));
 
-        if (slot.isBooked())
-            return ResponseEntity.status(400).body("Slot already booked");
+        if (slot.isBooked()) return ResponseEntity.status(400).body("Slot already booked");
 
         slot.setBooked(true);
         slot.setPatient(patient);
@@ -220,21 +219,42 @@ public class PatientController {
         appointmentService.save(appointment);
 
         try {
-            String to = patient.getUser().getEmail();
-            String subject = "Appointment Confirmation";
-            String text = String.format(
+            String patientEmail = patient.getUser().getEmail();
+            String patientSubject = "Appointment Confirmation";
+            String patientText = String.format(
                     "Hello %s %s,\n\nYour appointment for '%s' with Dr. %s %s on %s at %s has been successfully booked.\n\nThank you!",
-                    patient.getUser().getFirstName(),
-                    patient.getUser().getLastName(),
+                    patient.getUser().getFirstName(), patient.getUser().getLastName(),
                     service.getName(),
-                    slot.getDoctor().getUser().getFirstName(),
-                    slot.getDoctor().getUser().getLastName(),
-                    slot.getDate().toString(),
-                    slot.getStartTime()
+                    slot.getDoctor().getUser().getFirstName(), slot.getDoctor().getUser().getLastName(),
+                    slot.getDate().toString(), slot.getStartTime()
             );
-            emailService.sendSimpleEmail(to, subject, text);
+            emailService.sendSimpleEmail(patientEmail, patientSubject, patientText);
+
+            String doctorEmail = slot.getDoctor().getUser().getEmail();
+            String doctorSubject = "New Appointment Booked";
+            String doctorText = String.format(
+                    "Hello Dr. %s,\n\nA new appointment has been booked.\n\n" +
+                            "Time: %s at %s\n" +
+                            "Service: %s\n\n" +
+                            "Patient Details:\n" +
+                            "Name: %s %s\n" +
+                            "Phone: %s\n" +
+                            "Email: %s\n" +
+                            "CNP: %s\n" +
+                            "DOB: %s",
+                    slot.getDoctor().getUser().getLastName(),
+                    slot.getDate(), slot.getStartTime(),
+                    service.getName(),
+                    patient.getUser().getFirstName(), patient.getUser().getLastName(),
+                    patient.getUser().getPhone(),
+                    patient.getUser().getEmail(),
+                    patient.getCnp(),
+                    patient.getDateOfBirth()
+            );
+            emailService.sendSimpleEmail(doctorEmail, doctorSubject, doctorText);
+
         } catch (Exception e) {
-            System.err.println("Failed to send confirmation email: " + e.getMessage());
+            System.err.println("Failed to send confirmation emails: " + e.getMessage());
         }
 
         return ResponseEntity.ok(Map.of(
@@ -246,99 +266,34 @@ public class PatientController {
 
 
     @GetMapping("/departments/{depId}/services/{serviceId}/slots")
-    public ResponseEntity<?> getAvailableSlots(
+    public ResponseEntity<List<DoctorScheduleDTO>> getAvailableSlots(
             HttpServletRequest request,
             @PathVariable Long depId,
             @PathVariable Long serviceId,
             @RequestParam String date
     ) {
-
-        var user = authHelper.getPatientUserFromRequest(request);
-        if (user.isEmpty())
-            return ResponseEntity.status(401).body("Unauthorized");
-
         LocalDate targetDate = LocalDate.parse(date);
+        LocalTime currentTime = LocalTime.now();
 
-        var department = departmentRepo.findById(depId);
-        if (department.isEmpty())
-            return ResponseEntity.badRequest().body("Department not found");
+        var department = departmentRepo.findById(depId).orElse(null);
+        if (department == null) return ResponseEntity.badRequest().build();
 
-        List<Doctor> doctors = doctorService.findByDepartment(department.get());
-
-        List<DoctorSchedule> available = new ArrayList<>();
+        List<Doctor> doctors = doctorService.findByDepartment(department);
+        List<DoctorScheduleDTO> availableDtos = new ArrayList<>();
 
         for (Doctor d : doctors) {
-            available.addAll(
-                    scheduleRepo.findByDoctorAndDateAndBookedFalseOrderByStartTimeAsc(d, targetDate)
-            );
+            List<DoctorSchedule> slots = scheduleRepo.findByDoctorAndDateAndBookedFalseOrderByStartTimeAsc(d, targetDate);
+
+            if (targetDate.equals(LocalDate.now())) {
+                slots = slots.stream()
+                        .filter(s -> s.getStartTime().isAfter(currentTime))
+                        .collect(Collectors.toList());
+            }
+
+            availableDtos.addAll(slots.stream().map(mapper::toDTO).toList());
         }
 
-        return ResponseEntity.ok(available);
+        return ResponseEntity.ok(availableDtos);
     }
 
-
-    //    @GetMapping("/me")
-//    public ResponseEntity<?> getMyProfile(HttpServletRequest request){
-//        String header = request.getHeader("Authorization");
-//        if(header == null || !header.startsWith("Bearer ")) {
-//            return ResponseEntity.status(401).body("Missing or invalid Authorization header");
-//        }
-//        String token = header.substring(7);
-//        String email;
-//        try{
-//            Jws<Claims> claims = jwtUtil.validateToken(token);
-//            email = claims.getBody().getSubject();
-//        } catch (Exception e){
-//            return ResponseEntity.status(401).body("Invalid or expired token");
-//        }
-//
-//        var userOpt = userService.findByEmail(email);
-//        if(userOpt.isEmpty()){
-//            return ResponseEntity.badRequest().body("User not found");
-//        }
-//        var user = userOpt.get();
-//        if(user.getRole() != Role.PATIENT){
-//            return ResponseEntity.status(403).body("Only patients can access this endpoint");
-//        }
-//
-//        var patientOpt = patientService.findByUser(user);
-//        if(patientOpt.isEmpty()){
-//            return ResponseEntity.badRequest().body("Patient not found");
-//        }
-//        var patient = patientOpt.get();
-//        Map<String, Object> response = Map.of(
-//                "insuranceNumber", patient.getInsuranceNumber(),
-//                "dateOfBirth", patient.getDateOfBirth().toString(),
-//                "bloodType", patient.getBloodType(),
-//                "medicalHistory", patient.getMedicalHistory()
-//        );
-//
-//        return ResponseEntity.ok(response);
-//    }
-
-    //    @DeleteMapping("/me")
-//    public ResponseEntity<?> deleteMyAccount(HttpServletRequest request){
-//        String header = request.getHeader("Authorization");
-//        if(header == null || !header.startsWith("Bearer ")){
-//            return ResponseEntity.status(401).body("Missing or invalid Authorization header");
-//        }
-//
-//        String token = header.substring(7);
-//        String email;
-//        try {
-//            Jws<Claims> claims = jwtUtil.validateToken(token);
-//            email = claims.getBody().getSubject();
-//        } catch (Exception e) {
-//            return ResponseEntity.status(401).body("Invalid or expired token");
-//        }
-//        var userOpt = userService.findByEmail(email);
-//        if(userOpt.isEmpty()){
-//            return ResponseEntity.badRequest().body("User not found");
-//        }
-//        var user = userOpt.get();
-//        var patientOpt = patientService.findByUser(user);
-//        patientOpt.ifPresent(patient -> patientService.deletePatient(patient));
-//        userService.deleteUser(user);
-//        return ResponseEntity.ok(Map.of("message", "Account deleted successfully"));
-//    }
 }

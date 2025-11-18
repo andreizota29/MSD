@@ -1,32 +1,49 @@
-<p>Please enter the following information</p>
+<div class="auth-container">
+  <div class="card auth-card">
+    <div class="card-header" style="justify-content: center;">
+      <h3>Create Account</h3>
+    </div>
+    
+    <div style="padding: 2rem;">
+      <form [formGroup]="register" (ngSubmit)="handleSubmit()" style="display: flex; flex-direction: column; gap: 15px;">
+        
+        <div class="form-row">
+          <div>
+            <label>First Name</label>
+            <input type="text" formControlName="firstName" placeholder="John">
+          </div>
+          <div>
+            <label>Last Name</label>
+            <input type="text" formControlName="lastName" placeholder="Doe">
+          </div>
+        </div>
 
-<form [formGroup]="register" (ngSubmit)="handleSubmit()">
-    <label for="firstName">First Name</label>
-    <input type="text" id="firstName" placeholder="Please enter your first name" formControlName="firstName">
+        <div>
+          <label>Phone Number</label>
+          <input type="tel" formControlName="phone" placeholder="0712...">
+        </div>
 
-    <br/> <br/>
-    <label for="lastName">Last name</label>
-    <input type="text" id="lastName" placeholder="Please enter your last name" formControlName="lastName">
+        <div>
+          <label>Email</label>
+          <input type="email" formControlName="email" placeholder="email@example.com">
+        </div>
 
-    <br/> <br/>
-    <label for="phone">Phone Number</label>
-    <input type="tel" id="phone" placeholder="Please enter your phone number" formControlName="phone">
+        <div>
+          <label>Password</label>
+          <input type="password" formControlName="password" placeholder="******">
+        </div>
 
-    <br/> <br/>
+        <button type="submit" class="btn-primary" [disabled]="register.invalid" style="margin-top: 10px;">
+          Register
+        </button>
 
-    <label for="email">Email</label>
-    <input type="email" id="email" placeholder="Please enter your email" formControlName="email">
+        <div style="text-align: center; margin-top: 15px;">
+          <a routerLink="/login" style="color: #666; font-size: 0.9rem; text-decoration: none;">
+            Already have an account? <span style="color: #333; font-weight: 600;">Log In</span>
+          </a>
+        </div>
 
-    <br/> <br/>
-
-    <label for="password">Password</label>
-    <input type="password" id="password" placeholder="Please enter your password" formControlName="password">
-
-    <br/> <br/>
-
-    <button type="submit" [disabled]="register.invalid">Register</button>
-
-    <br/> <br/>
-
-    <a routerLink="/login">Go back</a>
-</form>
+      </form>
+    </div>
+  </div>
+</div>

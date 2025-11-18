@@ -8,6 +8,8 @@ import lombok.Setter;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Getter
@@ -34,4 +36,7 @@ public class DoctorSchedule {
     @JoinColumn(name = "patient_id")
     @JsonIgnoreProperties({"appointments"})
     private Patient patient;
+
+    @OneToMany(mappedBy = "doctorSchedule", fetch = FetchType.LAZY)
+    private List<Appointment> appointments = new ArrayList<>();
 }

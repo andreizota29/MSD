@@ -1,8 +1,10 @@
 package com.uaic.mediconnect.controller;
 
+import com.uaic.mediconnect.dto.DoctorScheduleDTO;
 import com.uaic.mediconnect.entity.Appointment;
 import com.uaic.mediconnect.entity.Doctor;
 import com.uaic.mediconnect.entity.DoctorSchedule;
+import com.uaic.mediconnect.mapper.DtoMapper;
 import com.uaic.mediconnect.repository.DoctorScheduleRepo;
 import com.uaic.mediconnect.service.AppointmentService;
 import com.uaic.mediconnect.service.AuthHelperService;
@@ -33,6 +35,9 @@ public class DoctorController {
     @Autowired
     private DoctorScheduleRepo scheduleRepo;
 
+    @Autowired
+    private DtoMapper mapper;
+
     @GetMapping("/appointments")
     public ResponseEntity<?> getMyAppointments(HttpServletRequest request){
         var userOpt = authHelperService.getDoctorUserFromRequest(request);
@@ -62,23 +67,23 @@ public class DoctorController {
     }
 
     @GetMapping("/timetable/week")
-    public ResponseEntity<?> getWeeklyTimetable(
-            HttpServletRequest request,
-            @RequestParam String start
-    ) {
-        var doctor = authHelperService.getDoctorUserFromRequest(request)
+    public ResponseEntity<List<DoctorScheduleDTO>> getWeeklyTimetable(
+            HttpServletRequest request, @RequestParam String start) {
+
+        var doctorOpt = authHelperService.getDoctorUserFromRequest(request)
                 .flatMap(doctorService::findByUser);
 
-        if (doctor.isEmpty())
-            return ResponseEntity.status(401).body("Unauthorized");
+        if (doctorOpt.isEmpty()) return ResponseEntity.status(401).build();
 
         LocalDate monday = LocalDate.parse(start);
         LocalDate sunday = monday.plusDays(6);
 
-        List<DoctorSchedule> slots =
-                scheduleRepo.findByDoctorAndDateBetweenOrderByDateAscStartTimeAsc(
-                        doctor.get(), monday, sunday);
+        List<DoctorScheduleDTO> dtos = scheduleRepo.findByDoctorAndDateBetweenOrderByDateAscStartTimeAsc(
+                        doctorOpt.get(), monday, sunday)
+                .stream()
+                .map(mapper::toDTO)
+                .toList();
 
-        return ResponseEntity.ok(slots);
+        return ResponseEntity.ok(dtos);
     }
 }

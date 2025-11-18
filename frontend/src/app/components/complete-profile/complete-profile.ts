@@ -3,6 +3,7 @@ import { HttpClient, HttpHandler, HttpHeaderResponse, HttpHeaders } from '@angul
 import { Component, OnInit } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
+import { Alert } from '../../services/alert';
 
 @Component({
   selector: 'app-complete-profile',
@@ -20,7 +21,7 @@ export class CompleteProfile implements OnInit {
     dateOfBirth: new FormControl('', Validators.required),
   });
 
-  constructor(private http: HttpClient, private router: Router, private route: ActivatedRoute) { }
+  constructor(private http: HttpClient, private router: Router, private route: ActivatedRoute, private alert: Alert) { }
 
   ngOnInit() {
   const token = localStorage.getItem('token');
@@ -68,7 +69,7 @@ export class CompleteProfile implements OnInit {
         if (res.token) {
           localStorage.setItem('token', res.token);
         }
-        alert(this.isEditMode ? 'Profile updated successfully!' : 'Profile completed successfully!');
+        this.alert.success(this.isEditMode ? 'Profile updated successfully!' : 'Profile completed successfully!');
         this.router.navigate(['/patient-dashboard']);
       },
       error: (err) => console.log(err)
@@ -90,13 +91,13 @@ export class CompleteProfile implements OnInit {
     this.http.delete('http://localhost:5050/patient/me', {headers})
     .subscribe({
       next: () => {
-        alert('Account deleted successfully');
+        this.alert.success('Account deleted successfully');
         localStorage.clear();
         this.router.navigate(['/login']);
       },
       error: (err) => {
         console.log(err);
-        alert('Failed to delete account');
+        this.alert.error('Failed to delete account');
       }
     });
   }

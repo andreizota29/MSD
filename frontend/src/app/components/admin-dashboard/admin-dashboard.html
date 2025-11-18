@@ -1,135 +1,129 @@
-<div class="dashboard">
-  <h2>Admin Dashboard</h2>
+<div class="liquid-container admin-grid">
+  
+  <div class="card">
+    <div class="card-header">
+      <h3><span class="material-icons">apartment</span> Departments</h3>
+    </div>
+    
+    <div class="card-controls">
+      <form [formGroup]="addDepartmentForm" (ngSubmit)="addDepartment()" class="add-row">
+        <input placeholder="Name" formControlName="name">
+        <button class="btn-primary btn-icon" [disabled]="addDepartmentForm.invalid">
+          <span class="material-icons">add</span>
+        </button>
+      </form>
+    </div>
 
-  <section>
-    <h3>Departments</h3>
-    <form [formGroup]="addDepartmentForm" (ngSubmit)="addDepartment()">
-      <input placeholder="Department Name" formControlName="name">
-      <button type="submit" [disabled]="addDepartmentForm.invalid">Add</button>
-    </form>
-
-    <table>
-      <tr>
-        <th>ID</th>
-        <th>Name</th>
-        <th>Actions</th>
-      </tr>
-      <tr *ngFor="let d of departments">
-        <td>{{d.id}}</td>
-        <td>{{d.name}}</td>
-        <td>
-          <button (click)="deleteDepartment(d.id)">Delete</button>
-        </td>
-      </tr>
-    </table>
-  </section>
-
-  <section>
-    <h3>Services</h3>
-    <form [formGroup]="addServiceForm" (ngSubmit)="addService()">
-      <select formControlName="departmentId" (change)="onDepartmentChange()">
-        <option value="">Select Department</option>
-        <option *ngFor="let d of departments" [value]="d.id">{{d.name}}</option>
-      </select>
-
-      <input placeholder="Service Name" formControlName="name">
-      <input placeholder="Service Price" type="number" formControlName="price">
-      <button type="submit" [disabled]="addServiceForm.invalid">Add</button>
-    </form>
-
-    <table>
-      <tr>
-        <th>ID</th>
-        <th>Service Name</th>
-        <th>Department</th>
-        <th>Price</th>
-        <th>Actions</th>
-      </tr>
-
-      <tr *ngFor="let s of filteredServices">
-        <td>{{s.id}}</td>
-        <td>{{s.name}}</td>
-        <td>{{s.department?.name}}</td>
-        <td>{{s.price}}</td>
-        <td>
-          <button (click)="deleteService(s.id)">Delete</button>
-        </td>
-      </tr>
-    </table>
-  </section>
-
-  <section>
-    <h3>Doctors</h3>
-
-    <form [formGroup]="addDoctorForm" (ngSubmit)="addDoctor()">
-      <input placeholder="First Name" formControlName="firstName">
-      <input placeholder="Last Name" formControlName="lastName">
-      <input placeholder="Email" formControlName="email">
-      <input placeholder="Phone" formControlName="phone">
-      <input  type="password" placeholder="Password" formControlName="password">
-      <input placeholder="Title (e.g. Medic primar)" formControlName="title">
-
-      <select formControlName="departmentId">
-        <option value="">Select Department</option>
-        <option *ngFor="let d of departments" [value]="d.id">{{d.name}}</option>
-      </select>
-
-      <select formControlName="timetableTemplate">
-        <option value="">Select Timetable</option>
-        <option *ngFor="let t of timetableTemplates" [value]="t">{{t}}</option>
-      </select>
-
-      <button type="submit" [disabled]="addDoctorForm.invalid">Add Doctor</button>
-    </form>
-
-    <table>
-      <tr>
-        <th>ID</th>
-        <th>Name</th>
-        <th>Email</th>
-        <th>Department</th>
-        <th>Actions</th>
-      </tr>
-
-      <tr *ngFor="let doc of doctors">
-        <td>{{doc.id}}</td>
-        <td>{{doc.user.firstName}} {{doc.user.lastName}}</td>
-        <td>{{doc.user.email}}</td>
-        <td>{{doc.department?.name}}</td>
-        <td>
-          <button (click)="editDoctor(doc)">Edit</button>
-          <button (click)="deleteDoctor(doc.id)">Delete</button>
-        </td>
-      </tr>
-    </table>
-  </section>
-
-  <button (click)="logout()">Logout</button>
-</div>
-
-<div class="modal" *ngIf="editingDoctor">
-  <div class="modal-content">
-    <h3>Edit Doctor</h3>
-
-    <form [formGroup]="editDoctorForm" (ngSubmit)="updateDoctor()">
-
-      <input placeholder="First Name" formControlName="firstName">
-      <input placeholder="Last Name" formControlName="lastName">
-      <input placeholder="Phone" formControlName="phone">
-
-      <select formControlName="departmentId">
-        <option value="">No Department</option>
-        <option *ngFor="let d of departments" [value]="d.id">{{d.name}}</option>
-      </select>
-
-      <select formControlName="timetableTemplate">
-        <option *ngFor="let t of timetableTemplates" [value]="t">{{ t }}</option>
-      </select>
-
-      <input placeholder="New Password" formControlName="password" type="password">
-
-      <button type="submit">Save</button>
-      <button type="button" (click)="closeEdit()">Cancel</button>
-    </form>
+    <div class="card-body-scroll">
+      <div class="list-item" *ngFor="let d of departments">
+        <span>{{d.name}}</span>
+        <button class="btn-danger btn-icon" (click)="deleteDepartment(d.id)">
+          <span class="material-icons">delete</span>
+        </button>
+      </div>
+    </div>
   </div>
+
+  <div class="card">
+    <div class="card-header">
+      <h3><span class="material-icons">medical_services</span> Services</h3>
+    </div>
+
+    <div class="card-controls">
+      <form [formGroup]="addServiceForm" (ngSubmit)="addService()">
+        <div style="margin-bottom: 8px;">
+          <select formControlName="departmentId" (change)="onDepartmentChange()" style="width:100%">
+            <option value="">Select Department</option>
+            <option *ngFor="let d of departments" [value]="d.id">{{d.name}}</option>
+          </select>
+        </div>
+        <div class="add-row">
+          <input placeholder="Name" formControlName="name">
+          <input placeholder="Price" type="number" formControlName="price" style="width: 70px; flex: none;">
+          <button class="btn-primary btn-icon" [disabled]="addServiceForm.invalid">
+            <span class="material-icons">add</span>
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <div class="card-body-scroll">
+      <div class="list-item" *ngFor="let s of filteredServices">
+        <div class="doc-item">
+          <span class="doc-name">{{s.name}}</span>
+          <span class="doc-meta">{{s.price}} RON</span>
+        </div>
+        <button class="btn-danger btn-icon" (click)="deleteService(s.id)">
+          <span class="material-icons">delete</span>
+        </button>
+      </div>
+      <div *ngIf="filteredServices.length === 0" style="padding: 1rem; text-align: center; color: #999; font-size: 0.9rem;">
+        Select a department
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <h3><span class="material-icons">people</span> Doctors</h3>
+      <span style="font-size: 0.8rem; color: #666;" *ngIf="editingDoctor">Editing Mode</span>
+    </div>
+
+    <div class="card-controls">
+      <form [formGroup]="editingDoctor ? editDoctorForm : addDoctorForm" 
+            (ngSubmit)="editingDoctor ? updateDoctor() : addDoctor()">
+        
+        <div class="form-row" style="margin-bottom:8px">
+          <input placeholder="First Name" formControlName="firstName">
+          <input placeholder="Last Name" formControlName="lastName">
+        </div>
+        
+        <div class="form-row" style="margin-bottom:8px">
+          <input placeholder="Email" formControlName="email"> 
+          <input placeholder="Phone" formControlName="phone">
+        </div>
+
+        <div class="form-row" style="margin-bottom:8px">
+           <input type="password" placeholder="Password" formControlName="password">
+           <input placeholder="Title" formControlName="title"> 
+        </div>
+
+        <div class="form-row" style="margin-bottom:8px">
+          <select formControlName="departmentId">
+             <option value="">Department</option>
+             <option *ngFor="let d of departments" [value]="d.id">{{d.name}}</option>
+          </select>
+          <select formControlName="timetableTemplate">
+             <option value="">Schedule</option>
+             <option *ngFor="let t of timetableTemplates" [value]="t">{{t}}</option>
+          </select>
+        </div>
+
+        <div class="form-row">
+          <button type="submit" class="btn-primary" style="flex:1">
+            {{ editingDoctor ? 'Update Doctor' : 'Create Doctor' }}
+          </button>
+          <button type="button" *ngIf="editingDoctor" (click)="closeEdit()" style="background:#eee; color: #333;">
+            Cancel
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <div class="card-body-scroll">
+      <div class="list-item" *ngFor="let doc of doctors">
+        <div class="doc-item">
+          <span class="doc-name">{{doc.title}} {{doc.user.firstName}} {{doc.user.lastName}}</span>
+          <span class="doc-meta">
+             <span>{{doc.department?.name}}</span> • <span>{{doc.user.email}}</span>
+          </span>
+        </div>
+        <div class="actions">
+          <button class="btn-icon" (click)="editDoctor(doc)"><span class="material-icons">edit</span></button>
+          <button class="btn-danger btn-icon" (click)="deleteDoctor(doc.id)"><span class="material-icons">delete</span></button>
+        </div>
+      </div>
+    </div>
+  </div>
+
 </div>

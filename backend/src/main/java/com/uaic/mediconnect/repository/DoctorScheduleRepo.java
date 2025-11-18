@@ -12,6 +12,6 @@ public interface DoctorScheduleRepo extends JpaRepository<DoctorSchedule, Long> 
     List<DoctorSchedule> findByDoctorOrderByDateAscStartTimeAsc(Doctor doctor);
     List<DoctorSchedule> findByDoctorAndDateOrderByStartTimeAsc(Doctor d, LocalDate targetDate);
     List<DoctorSchedule> findByDoctorAndDateBetweenOrderByDateAscStartTimeAsc(Doctor doctor, LocalDate monday, LocalDate sunday);
-    Collection<? extends DoctorSchedule> findByDoctorAndDateAndBookedFalseOrderByStartTimeAsc(Doctor d, LocalDate targetDate);
+    List<DoctorSchedule> findByDoctorAndDateAndBookedFalseOrderByStartTimeAsc(Doctor d, LocalDate targetDate);
     void deleteAllByDoctor(Doctor doctor);
 }

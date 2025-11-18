@@ -1,0 +1,14 @@
+label {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #444;
+  display: block;
+  margin-bottom: 4px;
+}
+.form-row {
+  display: flex;
+  gap: 10px;
+}
+.form-row div {
+  flex: 1;
+}

@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Component } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink, RouterModule } from "@angular/router";
+import { Alert } from '../../services/alert';
 
 @Component({
   selector: 'app-login',
@@ -17,8 +18,7 @@ export class Login {
 
   public loginForm = new FormGroup({
     email : new FormControl('',[Validators.required]),
-    password: new FormControl('',[Validators.required]),
-    role: new FormControl('',[Validators.required])
+    password: new FormControl('',[Validators.required])
   });
 
    public forgotForm = new FormGroup({
@@ -26,7 +26,8 @@ export class Login {
   });
 
   constructor(private httpClient: HttpClient,
-              private router: Router
+              private router: Router,
+              private alert: Alert
   ) {}
 
 public handleLogin() {
@@ -55,7 +56,7 @@ public handleLogin() {
       },
       error: (err) => {
         console.log(err);
-        alert("Wrong credentials or role");
+        this.alert.error("Wrong credentials or role");
       }
     });
   }
@@ -70,12 +71,12 @@ public handleLogin() {
   .subscribe({
     next: (res) => {
       console.log("Forgot password request sent successfully:", res);
-      alert(`If this email exists in our system, a password reset link has been sent to ${email}`);
+      this.alert.success(`If this email exists in our system, a password reset link has been sent to ${email}`);
       this.showForgotPassword = false;
     },
     error: (err) => {
       console.error("Failed to send forgot password request", err);
-      alert("Failed to send reset email. Try again later.");
+      this.alert.error("Failed to send reset email. Try again later.");
     }
   });
 }

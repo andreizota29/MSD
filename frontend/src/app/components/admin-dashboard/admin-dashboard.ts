@@ -3,6 +3,7 @@ import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Component, OnInit } from '@angular/core';
 import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
+import { Alert } from '../../services/alert';
 
 @Component({
   selector: 'app-admin-dashboard',
@@ -52,7 +53,7 @@ export class AdminDashboard implements OnInit {
     password: new FormControl('')
   });
 
-  constructor(private http: HttpClient, private router: Router) { }
+  constructor(private http: HttpClient, private router: Router, private alert: Alert) { }
 
   ngOnInit() {
     this.loadData();
@@ -144,16 +145,32 @@ export class AdminDashboard implements OnInit {
             this.selectedDepartmentId = null;
             this.filteredServices = [];
           }
-          this.loadData(); // refresh departments, services, doctors
-          alert('Department deleted successfully');
+          this.loadData(); 
+          this.alert.success('Department deleted successfully');
         },
         error: (err) => {
           if (err.status === 404) {
-            alert('Department not found or already deleted');
+            this.alert.error('Department not found or already deleted');
           } else {
             console.error(err);
           }
         }
+      });
+  }
+
+    deleteService(id: number) {
+    const headers = this.getAuthHeaders();
+    this.http.delete(`http://localhost:5050/admin/services/${id}`, { headers })
+      .subscribe({
+        next: () => {
+        this.services = this.services.filter(s => s.id !== id);
+        this.updateFilteredServices();
+        this.alert.success('Service deleted succesfully');
+      },
+      error: (err) => {
+        this.alert.error('Service not found or already deleted');
+      }
+
       });
   }
 
@@ -162,13 +179,13 @@ export class AdminDashboard implements OnInit {
 
     const dept = this.departments.find(d => d.id == this.addServiceForm.value.departmentId);
     if (!dept) {
-      alert('Department not found!');
+      this.alert.error('Department not found!');
       return;
     }
 
     const price = Number(this.addServiceForm.value.price);
     if (isNaN(price) || price <= 0) {
-      alert('Price must be a positive number');
+      this.alert.error('Price must be a positive number');
       return;
     }
 
@@ -186,16 +203,11 @@ export class AdminDashboard implements OnInit {
           this.updateFilteredServices();
           this.addServiceForm.reset();
         },
-        error: (err) => console.error('Error adding service:', err)
-      });
-  }
+        error: (err) => {
+          console.error('Error adding service:', err);
+          this.alert.error('Error adding service');
+        }
 
-  deleteService(id: number) {
-    const headers = this.getAuthHeaders();
-    this.http.delete(`http://localhost:5050/admin/services/${id}`, { headers })
-      .subscribe(() => {
-        this.services = this.services.filter(s => s.id !== id);
-        this.updateFilteredServices();
       });
   }
 
@@ -206,12 +218,12 @@ export class AdminDashboard implements OnInit {
 
     if (!dept) {
       console.error('Department not found for ID', deptId);
-      alert('Select a valid department!');
+      this.alert.error('Select a valid department!');
       return;
     }
 
     if (!dept) {
-      alert('Please select a valid department');
+      this.alert.error('Please select a valid department');
       return;
     }
 
@@ -232,28 +244,40 @@ export class AdminDashboard implements OnInit {
 
     if (!payload.user.firstName || !payload.user.lastName || !payload.user.email ||
       !payload.user.password || !payload.title) {
-      alert('Please fill all required fields');
+      this.alert.error('Please fill all required fields');
       return;
     }
     console.log('Payload to send:', payload);
     this.http.post('http://localhost:5050/admin/doctors', payload, { headers })
       .subscribe({
         next: () => {
-          alert('Doctor added successfully');
+          this.alert.success('Doctor added successfully');
           this.addDoctorForm.reset();
           this.loadData();
         },
-        error: (err) => console.error('Error adding doctor:', err)
+        error: (err) => {
+          console.error('Error adding doctor:', err);
+          this.alert.error('Error adding doctor');
+        }
       });
   }
 
   deleteDoctor(id: number) {
-    const headers = this.getAuthHeaders();
-    if (this.editingDoctor && this.editingDoctor.id === id) {
-      this.closeEdit();
+    if(!id) {
+       console.error("Error: Doctor ID is missing/undefined!");
+       return;
     }
-    this.http.delete(`http://localhost:5050/admin/doctors/${id}`, { headers })
-      .subscribe(() => this.doctors = this.doctors.filter(d => d.id !== id));
+
+    this.alert.confirm('This will permanently delete the doctor and their user account.', () => {
+      const headers = this.getAuthHeaders();
+      this.http.delete(`http://localhost:5050/admin/doctors/${id}`, { headers }).subscribe({
+        next: () => {
+          this.doctors = this.doctors.filter(d => d.id !== id);
+          this.alert.success('Doctor deleted successfully');
+        },
+        error: (err) => this.alert.error('Failed to delete doctor')
+      });
+  });
   }
 
   editDoctor(doc: any) {
@@ -294,7 +318,10 @@ export class AdminDashboard implements OnInit {
           this.closeEdit();
           this.loadData();
         },
-        error: (err) => console.error(err)
+        error: (err) => {
+          console.error(err);
+          this.alert.error('Error updating the doctor');
+        }
       });
   }
 

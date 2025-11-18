@@ -1,0 +1,24 @@
+<div class="alert-overlay" *ngIf="data" (click)="close()">
+      <div class="alert-card" [ngClass]="data.type" (click)="$event.stopPropagation()">
+        
+        <div class="alert-icon">
+          <span class="material-icons" *ngIf="data.type === 'success'">check_circle</span>
+          <span class="material-icons" *ngIf="data.type === 'error'">error</span>
+          <span class="material-icons" *ngIf="data.type === 'info'">info</span>
+          <span class="material-icons" *ngIf="data.type === 'confirm'">help</span>
+        </div>
+
+        <h3>{{ data.title }}</h3>
+        <p>{{ data.message }}</p>
+
+        <div class="alert-actions">
+          <button class="btn-secondary" (click)="close()">
+            {{ data.type === 'confirm' ? 'Cancel' : 'Close' }}
+          </button>
+
+          <button *ngIf="data.type === 'confirm'" class="btn-primary" (click)="confirm()">
+            Confirm
+          </button>
+        </div>
+      </div>
+    </div>

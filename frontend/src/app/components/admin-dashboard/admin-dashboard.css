@@ -1,0 +1,52 @@
+.admin-grid {
+  grid-template-columns: 1fr 1fr 2fr; 
+  grid-template-rows: 100%; 
+}
+
+@media (max-width: 1000px) {
+  .admin-grid {
+    grid-template-columns: 1fr 1fr;
+    overflow-y: auto;
+    height: auto;
+  }
+  .liquid-container { height: auto; }
+}
+
+.form-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap; 
+}
+.form-row input { flex: 1; }
+
+.doc-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.doc-name { font-weight: 600; }
+.doc-meta { font-size: 0.8rem; color: #666; display: flex; gap: 10px; }
+.actions { display: flex; gap: 5px; }
+
+.add-row {
+  display: flex !important;
+  gap: 8px;
+  align-items: center;
+  width: 100%;
+}
+
+.add-row input, 
+.add-row select {
+  flex: 1;
+  min-width: 0; 
+  height: 38px;
+  margin: 0 !important;
+}
+.add-row button {
+  flex: 0 0 40px;
+  height: 38px;   
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}

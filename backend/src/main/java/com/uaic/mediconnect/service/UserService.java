@@ -2,7 +2,7 @@ package com.uaic.mediconnect.service;
 
 import com.uaic.mediconnect.entity.User;
 import com.uaic.mediconnect.repository.UserRepo;
-import com.uaic.mediconnect.requests.LoginRequest;
+import com.uaic.mediconnect.dto.LoginRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;

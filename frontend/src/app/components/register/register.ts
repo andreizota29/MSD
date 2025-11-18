@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Component } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
+import { Alert } from '../../services/alert';
 
 @Component({
   selector: 'app-register',
@@ -23,13 +24,14 @@ export class Register {
   });
 
   constructor(private httpClient: HttpClient,
-              private router: Router
+              private router: Router,
+              private alert: Alert
   ) {}
 
   public handleSubmit() {
     console.log(this.register.value); 
     this.httpClient.post('http://localhost:5050/auth/register', this.register.value).subscribe(data => {
-      alert("Registation Successfully");
+      this.alert.success("Registation Successfully");
       this.router.navigate(['/login']);
     }, error => {
       console.log(error);

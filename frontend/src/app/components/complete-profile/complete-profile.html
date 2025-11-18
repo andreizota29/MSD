@@ -1,24 +1,39 @@
-<div class="profile-container">
-   <h2>{{ isEditMode ? 'Edit Your Profile' : 'Complete Your Profile' }}</h2>
-  <form [formGroup]="profileForm" (ngSubmit)="handleSubmit()">
-
-    <div class="form-group">
-      <label for="cnp">CNP</label>
-      <input id="cnp" formControlName="cnp" type="text" required />
+<div class="auth-container">
+  <div class="card auth-card">
+    <div class="card-header">
+      <h3>
+        <span class="material-icons">badge</span> 
+        {{ isEditMode ? 'Edit Profile' : 'Complete Profile' }}
+      </h3>
     </div>
 
-    <div class="form-group">
-      <label for="dateOfBirth">Date of Birth</label>
-      <input id="dateOfBirth" formControlName="dateOfBirth" type="date" required />
+    <div style="padding: 2rem;">
+      <p style="margin-top:0; color:#666; font-size:0.9rem; margin-bottom:1.5rem;">
+        We need a few more details before you can book appointments.
+      </p>
+
+      <form [formGroup]="profileForm" (ngSubmit)="handleSubmit()" style="display: flex; flex-direction: column; gap: 15px;">
+
+        <div>
+          <label for="cnp">CNP (Personal ID)</label>
+          <input id="cnp" formControlName="cnp" type="text" placeholder="199..." />
+        </div>
+
+        <div>
+          <label for="dateOfBirth">Date of Birth</label>
+          <input id="dateOfBirth" formControlName="dateOfBirth" type="date" />
+        </div>
+
+        <button type="submit" class="btn-primary" [disabled]="profileForm.invalid" style="margin-top: 10px;">
+          {{ isEditMode ? 'Save Changes' : 'Finish Setup' }}
+        </button>
+
+        <div *ngIf="isEditMode" style="border-top: 1px solid #eee; margin-top: 15px; padding-top: 15px; display: flex; flex-direction: column; gap: 10px;">
+          <button type="button" (click)="goBack()" style="background: transparent; border: 1px solid #ddd;">Back to Dashboard</button>
+          <button type="button" (click)="deleteAccount()" class="btn-danger">Delete My Account</button>
+        </div>
+
+      </form>
     </div>
-
-    <button type="submit" [disabled]="profileForm.invalid">
-      {{ isEditMode ? 'Save Changes' : 'Save' }}
-    </button>
-
-    <button *ngIf="isEditMode" type="button" (click)="goBack()">Back</button>
-    <button *ngIf="isEditMode" type="button" (click)="deleteAccount()">
-      Delete Account
-    </button>
-  </form>
+  </div>
 </div>

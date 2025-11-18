@@ -1,1 +1,187 @@
-/* You can add global styles to this file, and also import other style files */
+/* styles.css */
+:root {
+  --bg-color: #f0f2f5;
+  --card-bg: #ffffff;
+  --text-main: #1f1f1f;
+  --text-secondary: #666666;
+  --border-color: #e0e0e0;
+  --primary-btn: #333333;
+  --primary-btn-hover: #000000;
+  --danger: #d32f2f;
+  --success-bg: #e8f5e9;
+  --success-text: #2e7d32;
+  
+  /* Slot Colors */
+  --slot-default: #f5f5f5;
+  --slot-hover: #e0e0e0;
+  --slot-selected-bg: #333;
+  --slot-selected-text: #fff;
+  --slot-booked: #ffebee;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+
+body {
+  margin: 0;
+  font-family: 'Inter', sans-serif;
+  background-color: var(--bg-color);
+  color: var(--text-main);
+  /* CHANGED: Removed fixed height and overflow hidden from body to allow zoom scrolling */
+  min-height: 100vh; 
+}
+
+/* Scrollbar Styling for the internal lists */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #ccc; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #999; }
+
+/* --- Utility Classes --- */
+
+/* The container that fills the screen below header */
+.liquid-container {
+  /* DESKTOP DEFAULT: Fixed height, internal scrolling */
+  height: calc(100vh - 64px); 
+  padding: 1rem;
+  display: grid;
+  gap: 1rem;
+  overflow: hidden; /* Prevent page scroll on desktop */
+}
+
+/* The Card Component */
+.card {
+  background: var(--card-bg);
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border-color);
+  
+  /* CRITICAL FIX FOR SCROLLING: */
+  height: 100%;       /* Force card to fill the grid cell */
+  min-height: 0;      /* Allow flex child to shrink below content size */
+}
+
+.card-header {
+  padding: 1rem;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #fafafa;
+}
+
+.card-header h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* The "Fixed" Input Section inside a card */
+.card-controls {
+  padding: 1rem;
+  border-bottom: 1px solid var(--border-color);
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* The Scrollable List Area */
+.card-body-scroll {
+  flex: 1;           /* Fill remaining space in the card */
+  overflow-y: auto;  /* Scroll THIS area, not the page */
+  min-height: 0;     /* Firefox fix for nested flex scrolling */
+}
+
+/* List Items */
+.list-item {
+  padding: 0.8rem 1rem;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.list-item:last-child { border-bottom: none; }
+.list-item:hover { background-color: #f9f9f9; }
+
+/* Forms */
+input, select {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  background: #fff;
+}
+
+button {
+  cursor: pointer;
+  padding: 10px 16px;
+  border-radius: 6px;
+  border: none;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.btn-primary {
+  background: var(--primary-btn);
+  color: #fff;
+}
+.btn-primary:hover { background: var(--primary-btn-hover); }
+.btn-primary:disabled { background: #ccc; cursor: not-allowed; }
+
+.btn-danger {
+  background: transparent;
+  color: var(--danger);
+  border: 1px solid var(--border-color);
+}
+.btn-danger:hover { background: #ffebee; }
+
+.btn-icon {
+  padding: 6px;
+  background: transparent;
+  color: var(--text-secondary);
+}
+.btn-icon:hover { color: var(--text-main); background: #eee; }
+
+/* Auth Container (Centered) */
+.auth-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  margin-top: 30px
+}
+.auth-card {
+  width: 100%;
+  max-width: 400px;
+}
+
+@media (max-width: 1000px), (max-height: 600px) {
+  .liquid-container {
+    height: auto;       /* Let container grow */
+    overflow: visible;  /* Allow page scroll */
+    display: flex;      /* Stack cards vertically */
+    flex-direction: column;
+  }
+
+  .card {
+    height: 500px;      /* Give cards a fixed height so they scroll internally */
+    /* Or use 'height: auto' if you want the card to grow endlessly */
+  }
+  
+  /* Exception: Let the doctor list be taller on mobile */
+  .card:last-child {
+    height: 600px;
+  }
+}
