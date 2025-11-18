@@ -25,49 +25,49 @@
          {{ showAppointments ? 'Hide My Appointments' : 'View My Appointments' }}
        </button>
 
-       <div *ngIf="showAppointments">
-          <h4 style="margin-top:0; border-bottom:1px solid #ddd; padding-bottom:5px;">My Appointments</h4>
-          
-          <div *ngIf="appointments.length === 0" style="text-align:center; color:#999; font-size:0.9rem; padding:10px;">
-             No appointments found.
-          </div>
+       <div *ngIf="showAppointments" class="appointment-list-wrapper">
+         <h4 style="margin-top:0; border-bottom:1px solid #ddd; padding-bottom:5px;">My Appointments</h4>
+         
+         <div *ngIf="appointments.length === 0" style="text-align:center; color:#999; font-size:0.9rem; padding:10px;">
+              No appointments found.
+         </div>
 
-          <div *ngFor="let a of appointments" class="card" style="margin-bottom:10px; padding:10px; border:1px solid #ddd; box-shadow:none;">
-             
-             <div style="font-weight:600; font-size:0.9rem">{{a.service.name}}</div>
-             
-             <div style="font-size:0.8rem; color:#666">
+         <div *ngFor="let a of appointments" class="card" style="margin-bottom:10px; padding:10px; border:1px solid #ddd; box-shadow:none;">
+              <div style="font-weight:600; font-size:0.9rem">{{a.service.name}}</div>
+              
+              <div style="font-size:0.8rem; color:#666">
                 {{a.doctorSchedule.date}} @ {{a.doctorSchedule.startTime}}
-             </div>
-             
-             <div style="font-size:0.8rem; margin-top:4px; color: #333;">
+              </div>
+              
+              <div style="font-size:0.8rem; margin-top:4px; color: #333;">
                 Dr. {{a.doctor.user.lastName}}
-             </div>
-             
-             <button *ngIf="a.status === 'SCHEDULED'" (click)="cancelAppointment(a.id)" 
-                     style="margin-top:8px; font-size:0.75rem; padding: 6px; width:100%;" class="btn-danger">
-               Cancel Appointment
-             </button>
-             
-             <div *ngIf="a.status !== 'SCHEDULED'" style="font-size:0.8rem; margin-top:5px; color:#666;">
+              </div>
+              
+              <button *ngIf="a.status === 'SCHEDULED'" (click)="cancelAppointment(a.id)" 
+                      style="margin-top:8px; font-size:0.75rem; padding: 6px; width:100%;" class="btn-danger">
+                Cancel Appointment
+              </button>
+              
+              <div *ngIf="a.status !== 'SCHEDULED'" style="font-size:0.8rem; margin-top:5px; color:#666;">
                 Status: {{a.status}}
-             </div>
+              </div>
           </div>
        </div>
     </div>
   </div>
 
   <div class="card">
+    
     <div class="day-nav" *ngIf="selectedServiceId">
        <button class="btn-icon" (click)="prevDay()"><span class="material-icons">chevron_left</span></button>
        <div class="current-date"><span class="material-icons" style="vertical-align:middle; font-size:18px">event</span> {{ formattedDate }}</div>
        <button class="btn-icon" (click)="nextDay()"><span class="material-icons">chevron_right</span></button>
     </div>
-
+    
     <div class="card-body-scroll" *ngIf="selectedServiceId; else noService">
        
        <div *ngIf="groupedSlots.length === 0" style="padding: 2rem; text-align: center; color: #999;">
-          No slots available for this date. Try the next day.
+         No slots available for this date. Try the next day.
        </div>
 
        <div *ngFor="let group of groupedSlots" class="doctor-card">
