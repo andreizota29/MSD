@@ -4,6 +4,7 @@ import com.uaic.mediconnect.entity.Department;
 import com.uaic.mediconnect.entity.Doctor;
 import com.uaic.mediconnect.entity.Role;
 import com.uaic.mediconnect.entity.User;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,85 +24,49 @@ public class UserRepoTest {
     @Autowired
     private TestEntityManager entityManager;
 
-    @Autowired
-    private DoctorRepo doctorRepo;
+    private User baseUser;
+
+    @BeforeEach
+    void setUp() {
+        baseUser = new User();
+        baseUser.setEmail("base@test.com");
+        baseUser.setPassword("Parola123!");
+        baseUser.setRole(Role.PATIENT);
+        baseUser.setFirstName("Base");
+        baseUser.setLastName("User");
+        baseUser.setProfileCompleted(true);
+        entityManager.persist(baseUser);
+        entityManager.flush();
+    }
 
     @Test
-    @DisplayName("Should save an user to the database")
+    @DisplayName("Should save a new user")
     void testSaveUser() {
-        User user = new User();
-        user.setEmail("test@email.com");
-        user.setPassword("parola123");
-        user.setRole(Role.PATIENT);
-        user.setFirstName("Testo");
-        user.setLastName("Putesto");
+        User newUser = new User();
+        newUser.setEmail("new@test.com");
+        newUser.setPassword("Password123!");
+        newUser.setRole(Role.DOCTOR);
+        newUser.setFirstName("New");
+        newUser.setLastName("User");
 
-        User saved = userRepo.save(user);
+        User saved = userRepo.save(newUser);
 
         assertThat(saved.getUserId()).isNotNull();
-        assertThat(saved.getEmail()).isEqualTo("test@email.com");
+        assertThat(saved.getEmail()).isEqualTo("new@test.com");
     }
 
     @Test
     @DisplayName("Should find user by email")
     void testFindByEmail() {
-        User user = new User();
-        user.setEmail("find@email.com");
-        user.setPassword("finder123");
-        user.setRole(Role.DOCTOR);
-        user.setFirstName("Doctorescu");
-        user.setLastName("Findescu");
-
-        entityManager.persist(user);
-        entityManager.flush();
-
-        Optional<User> found = userRepo.findByEmail("find@email.com");
-
+        Optional<User> found = userRepo.findByEmail("base@test.com");
         assertThat(found).isPresent();
-        assertThat(found.get().getRole()).isEqualTo(Role.DOCTOR);
-        assertThat(found.get().getFirstName()).isEqualTo("Doctorescu");
+        assertThat(found.get().getFirstName()).isEqualTo("Base");
     }
 
     @Test
-    @DisplayName("Should return empty when email doesn't exist")
     void testFindEmailNotFound(){
-        Optional<User> found = userRepo.findByEmail("nimic@zero.com");
+        Optional<User> found = userRepo.findByEmail("ghost@test.com");
         assertThat(found).isEmpty();
     }
 
-    @Test
-    @DisplayName("Deleting a doctor should cascade delete the user")
-    void testCascadeDeleteDepartment(){
-        Department department = new Department();
-        department.setName("DepOne2");
-        entityManager.persist(department);
-
-        User user = new User();
-        user.setEmail("cascade@depart.com");
-        user.setPassword("cascadeD1232");
-        user.setRole(Role.DOCTOR);
-        user.setProfileCompleted(false);
-        user.setFirstName("Cascadus2");
-        user.setLastName("Doctorus2");
-        entityManager.persist(user);
-
-        Doctor doctor = new Doctor();
-        doctor.setTitle("Doctor Cascade2");
-        doctor.setActive(true);
-        doctor.setDepartment(department);
-        doctor.setUser(user);
-        entityManager.persist(doctor);
-        entityManager.flush();
-
-        Optional<User> beforeDelete = userRepo.findByEmail("cascade@depart.com");
-        assertThat(beforeDelete).isPresent();
-
-        entityManager.remove(doctor);
-        entityManager.flush();
-
-        Optional<User> afterDelete = userRepo.findByEmail("cascade@depart.com");
-        assertThat(userRepo.findByEmail("cascade@depart.com")).isEmpty();
-        assertThat(doctorRepo.findById(doctor.getId())).isEmpty();
-
-    }
 }

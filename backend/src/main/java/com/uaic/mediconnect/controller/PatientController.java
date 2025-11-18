@@ -5,6 +5,8 @@ import com.uaic.mediconnect.dto.ClinicServiceDTO;
 import com.uaic.mediconnect.dto.DepartmentDTO;
 import com.uaic.mediconnect.dto.DoctorScheduleDTO;
 import com.uaic.mediconnect.entity.*;
+import com.uaic.mediconnect.exception.BusinessValidationException;
+import com.uaic.mediconnect.factory.AppointmentFactory;
 import com.uaic.mediconnect.mapper.DtoMapper;
 import com.uaic.mediconnect.repository.DepartmentRepo;
 import com.uaic.mediconnect.repository.DoctorScheduleRepo;
@@ -13,6 +15,7 @@ import com.uaic.mediconnect.service.*;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jws;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -63,6 +66,12 @@ public class PatientController {
     @Autowired
     private DtoMapper mapper;
 
+    @Autowired
+    private ValidationService validationService;
+
+    @Autowired
+    private AppointmentFactory appointmentFactory;
+
 
     @GetMapping("/me")
     public ResponseEntity<?> getMyProfile(HttpServletRequest request){
@@ -77,17 +86,34 @@ public class PatientController {
 
 
     @DeleteMapping("/me")
-    public ResponseEntity<?> deleteMyAccount(HttpServletRequest request){
+    @Transactional
+    public ResponseEntity<?> deleteMyAccount(HttpServletRequest request) {
         var userOpt = authHelper.getPatientUserFromRequest(request);
-        if(userOpt.isEmpty()){
+        if (userOpt.isEmpty()) {
             return ResponseEntity.status(401).body("Invalid or unauthorized user");
         }
 
         var user = userOpt.get();
         var patientOpt = patientService.findByUser(user);
-        patientOpt.ifPresent(patient -> patientService.deletePatient(patient));
+        if (patientOpt.isPresent()) {
+            Patient patient = patientOpt.get();
+            List<Appointment> appointments = appointmentService.findByPatient(patient);
+
+            for (Appointment app : appointments) {
+                DoctorSchedule slot = app.getDoctorSchedule();
+                if (slot != null) {
+                    slot.setBooked(false);
+                    slot.setPatient(null);
+                    scheduleRepo.save(slot);
+                }
+
+                appointmentService.delete(app);
+            }
+            patientService.deletePatient(patient);
+        }
         userService.deleteUser(user);
-        return ResponseEntity.ok(Map.of("message", "Account deleted successfully"));
+
+        return ResponseEntity.ok(Map.of("message", "Account and all data deleted successfully"));
     }
 
     @GetMapping("/appointments/list")
@@ -138,19 +164,16 @@ public class PatientController {
         var patientOpt = patientService.findByUser(userOpt.get());
         if (patientOpt.isEmpty()) return ResponseEntity.badRequest().body("Patient not found");
 
+        try {
+            validationService.validateAppointmentCancellation(id, userOpt.get().getUserId());
+        } catch (BusinessValidationException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+
         var appointmentOpt = appointmentService.findById(id);
         if (appointmentOpt.isEmpty()) return ResponseEntity.badRequest().body("Appointment not found");
-
         var appointment = appointmentOpt.get();
-
-        if (!appointment.getPatient().getId().equals(patientOpt.get().getId()))
-            return ResponseEntity.status(403).body("Cannot cancel this appointment");
-
-        if (appointment.getStatus() == AppointmentStatus.COMPLETED)
-            return ResponseEntity.badRequest().body("Cannot cancel completed appointments");
-
         appointmentService.cancelAppointment(appointment);
-
         try {
             String to = patientOpt.get().getUser().getEmail();
             String subject = "Appointment Cancelled";
@@ -197,25 +220,21 @@ public class PatientController {
 
         var patient = patientService.findByUser(user.get()).orElse(null);
         if (patient == null) return ResponseEntity.badRequest().body("Patient not found");
+        try {
+            validationService.validateAppointmentBooking(slotId, serviceId, patient.getId());
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
 
         ClinicService service = clinicServiceService.getServiceById(serviceId);
-
-        DoctorSchedule slot = scheduleRepo.findById(slotId)
-                .orElseThrow(() -> new RuntimeException("Slot not found"));
+        DoctorSchedule slot = scheduleRepo.findById(slotId).get();
 
         if (slot.isBooked()) return ResponseEntity.status(400).body("Slot already booked");
 
         slot.setBooked(true);
         slot.setPatient(patient);
         scheduleRepo.save(slot);
-
-        Appointment appointment = new Appointment();
-        appointment.setDoctor(slot.getDoctor());
-        appointment.setPatient(patient);
-        appointment.setService(service);
-        appointment.setDoctorSchedule(slot);
-        appointment.setStatus(AppointmentStatus.SCHEDULED);
-
+        Appointment appointment = appointmentFactory.createAppointment(patient, slot, service);
         appointmentService.save(appointment);
 
         try {

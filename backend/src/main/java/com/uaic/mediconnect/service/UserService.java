@@ -38,18 +38,11 @@ public class UserService {
         if(user.isEmpty()) {
             return false;
         }
-
         User user1 = user.get();
         if (!passwordEncoder.matches(loginRequest.getPassword(), user1.getPassword())) {
             return false;
         }
-
-        if (user1.getRole() != loginRequest.getRole()) {
-            return false;
-        }
-
         return true;
-
     }
 
     public void saveWithoutEncoding(User user) {

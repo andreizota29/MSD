@@ -2,6 +2,7 @@ package com.uaic.mediconnect.repository;
 
 import com.uaic.mediconnect.entity.ClinicService;
 import com.uaic.mediconnect.entity.Department;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,22 +18,27 @@ public class ClinicServiceRepoTest {
     @Autowired
     private TestEntityManager entityManager;
 
-    @Test
-    @DisplayName("Should save a service into the database")
-    void testSaveService() {
-        Department department = new Department();
-        department.setName("DeparTest");
-        entityManager.persist(department);
-        entityManager.flush();
+    private Department testDepartment;
 
-        ClinicService clinicService = new ClinicService();
-        clinicService.setDepartment(department);
-        clinicService.setName("Serviciu");
-        clinicService.setPrice(100.00);
-        ClinicService saved = clinicServiceRepo.save(clinicService);
+    @BeforeEach
+    void setUp() {
+        testDepartment = new Department();
+        testDepartment.setName("Test Dept");
+        entityManager.persist(testDepartment);
+        entityManager.flush();
+    }
+
+    @Test
+    void testSaveService() {
+        ClinicService service = new ClinicService();
+        service.setDepartment(testDepartment);
+        service.setName("Checkup");
+        service.setPrice(150.00);
+
+        ClinicService saved = clinicServiceRepo.save(service);
 
         assertThat(saved.getId()).isNotNull();
-        assertThat(saved.getName()).isEqualTo("Serviciu");
-        assertThat(saved.getDepartment().getName()).isEqualTo("DeparTest");
+        assertThat(saved.getName()).isEqualTo("Checkup");
+        assertThat(saved.getDepartment().getName()).isEqualTo("Test Dept");
     }
 }

@@ -1,20 +1,21 @@
 package com.uaic.mediconnect.controller;
 
+import com.uaic.mediconnect.dto.RegisterRequest;
 import com.uaic.mediconnect.entity.Doctor;
 import com.uaic.mediconnect.entity.Patient;
 import com.uaic.mediconnect.entity.Role;
 import com.uaic.mediconnect.entity.User;
+import com.uaic.mediconnect.factory.PatientFactory;
 import com.uaic.mediconnect.repository.DoctorRepo;
 import com.uaic.mediconnect.dto.LoginRequest;
+import com.uaic.mediconnect.repository.UserRepo;
 import com.uaic.mediconnect.security.JwtUtil;
-import com.uaic.mediconnect.service.AuthHelperService;
-import com.uaic.mediconnect.service.EmailService;
-import com.uaic.mediconnect.service.PatientService;
-import com.uaic.mediconnect.service.UserService;
+import com.uaic.mediconnect.service.*;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jws;
 import io.jsonwebtoken.JwtException;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -47,13 +48,28 @@ public class AuthController {
     @Autowired
     private EmailService emailService;
 
-    @PostMapping("/register")
-    public ResponseEntity<?> register(@RequestBody User user){
-        user.setRole(Role.PATIENT);
-        User savedUser = userService.addUser(user);
-        return ResponseEntity.ok(savedUser);
-    }
+    @Autowired
+    private PatientFactory patientFactory;
 
+    @Autowired
+    private ValidationServiceImpl validationService;
+
+    @Autowired
+    private UserRepo userRepo;
+
+    @PostMapping("/register")
+    public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest inputUser){
+        if (userRepo.existsByEmail(inputUser.getEmail())) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Email is already in use"));
+        }
+        if (userRepo.existsByPhone(inputUser.getPhone())) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Phone number is already in use"));
+        }
+        User userToSave = patientFactory.createPatientUser(inputUser);
+        userService.saveWithoutEncoding(userToSave);
+
+        return ResponseEntity.ok(userToSave);
+    }
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest loginRequest) {
         var userOpt = userService.findByEmail(loginRequest.getEmail());
@@ -61,11 +77,9 @@ public class AuthController {
             return ResponseEntity.status(401).body(Map.of("error", "Invalid credentials"));
         }
         var user = userOpt.get();
-
         if (!userService.checkPassword(loginRequest.getPassword(), user.getPassword())) {
             return ResponseEntity.status(401).body(Map.of("error", "Invalid credentials"));
         }
-
         if (user.getRole() == Role.DOCTOR) {
             Doctor doctor = doctorRepo.findByUser_UserId(user.getUserId())
                     .orElseThrow(() -> new UsernameNotFoundException("Doctor account not found"));
@@ -74,7 +88,6 @@ public class AuthController {
                 return ResponseEntity.status(403).body(Map.of("error", "Doctor account is inactive"));
             }
         }
-
         return ResponseEntity.ok(authHelper.generateAuthResponse(user));
     }
 
@@ -86,19 +99,27 @@ public class AuthController {
         }
 
         var user = userOpt.get();
-
+        Patient patientToCheck;
         var patientOpt = patientService.findByUser(user);
+
         if(patientOpt.isPresent()){
-            var existingPatient = patientOpt.get();
-            existingPatient.setCnp(patientData.getCnp());
-            existingPatient.setDateOfBirth(patientData.getDateOfBirth());
-            patientService.addPatient(existingPatient);
+            patientToCheck = patientOpt.get();
+            patientToCheck.setCnp(patientData.getCnp());
+            patientToCheck.setDateOfBirth(patientData.getDateOfBirth());
         } else{
-            patientData.setUser(user);
-            patientService.addPatient(patientData);
+            patientToCheck = patientFactory.createPatientAggregate(user, patientData);
+        }
+        try {
+            validationService.validatePatientProfileData(patientToCheck);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+        patientService.addPatient(patientToCheck);
+        if(!user.isProfileCompleted()) {
             user.setProfileCompleted(true);
             userService.saveWithoutEncoding(user);
         }
+
         String newToken = jwtUtil.generateToken(
                 user.getEmail(),
                 user.getRole().name(),

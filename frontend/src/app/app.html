@@ -7,6 +7,11 @@
   </div>
   
   <nav *ngIf="isLoggedIn" class="nav-actions">
+    
+    <button *ngIf="isPatient" class="nav-btn btn-danger-nav" (click)="deleteAccount()">
+      <span class="material-icons" style="font-size:18px;">delete_forever</span> 
+      Delete Account
+    </button>
     <button class="nav-btn" (click)="changePass()">
       <span class="material-icons" style="font-size:18px;">lock</span> 
       Change Password

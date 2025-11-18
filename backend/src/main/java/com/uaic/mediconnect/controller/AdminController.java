@@ -2,13 +2,17 @@ package com.uaic.mediconnect.controller;
 
 import com.uaic.mediconnect.dto.*;
 import com.uaic.mediconnect.entity.*;
+import com.uaic.mediconnect.factory.ClinicFactory;
+import com.uaic.mediconnect.factory.UserFactory;
 import com.uaic.mediconnect.mapper.DtoMapper;
 import com.uaic.mediconnect.repository.*;
 import com.uaic.mediconnect.service.*;
 import jakarta.transaction.Transactional;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
@@ -52,7 +56,16 @@ public class AdminController {
     private ClinicServiceService clinicServiceService;
 
     @Autowired
+    private UserFactory userFactory;
+
+    @Autowired
+    private AuditService auditService;
+
+    @Autowired
     private DtoMapper mapper;
+
+    @Autowired
+    private ClinicFactory clinicFactory;
 
     @GetMapping("/departments")
     public ResponseEntity<List<DepartmentDTO>> getAllDepartments(){
@@ -63,12 +76,12 @@ public class AdminController {
     }
 
     @PostMapping(value = "/departments", consumes = "application/json", produces = "application/json")
-    public ResponseEntity<?> createDepartment(@RequestBody Department department) {
-        if (department.getName() == null || department.getName().isBlank()) {
+    public ResponseEntity<?> createDepartment(@RequestBody Department input) {
+        if (input.getName() == null || input.getName().isBlank()) {
             return ResponseEntity.badRequest().body("Department name is required");
         }
+        Department department = clinicFactory.createDepartment(input.getName());
         Department saved = departmentRepo.save(department);
-
         return ResponseEntity.status(HttpStatus.CREATED).body(mapper.toDTO(saved));
     }
 
@@ -92,15 +105,10 @@ public class AdminController {
         if (req.getName() == null || req.getDepartment() == null) {
             return ResponseEntity.badRequest().body("Missing data");
         }
-
         Department dept = departmentRepo.findById(req.getDepartment().getId())
                 .orElseThrow(() -> new RuntimeException("Dept not found"));
 
-        ClinicService service = new ClinicService();
-        service.setName(req.getName());
-        service.setPrice(req.getPrice());
-        service.setDepartment(dept);
-
+        ClinicService service = clinicFactory.createService(req, dept);
         ClinicService saved = clinicServiceRepo.save(service);
         return ResponseEntity.status(HttpStatus.CREATED).body(mapper.toDTO(saved));
     }
@@ -132,29 +140,22 @@ public class AdminController {
     }
 
     @PostMapping("/doctors")
-    public ResponseEntity<?> createDoctor(@RequestBody CreateDoctorRequest req) {
+    public ResponseEntity<?> createDoctor(@Valid @RequestBody CreateDoctorRequest req) {
         if (req.getUserData() == null || req.getDepartment() == null) {
-            return ResponseEntity.badRequest().body("Invalid data");
+            return ResponseEntity.badRequest().body(Map.of("error", "Invalid data"));
         }
-        User user = new User();
-        user.setFirstName(req.getUserData().getFirstName());
-        user.setLastName(req.getUserData().getLastName());
-        user.setEmail(req.getUserData().getEmail());
-        user.setPhone(req.getUserData().getPhone());
-        user.setPassword(passwordEncoder.encode(req.getUserData().getPassword()));
-        user.setRole(Role.DOCTOR);
-        user.setProfileCompleted(true);
+
+        if (userRepo.existsByEmail(req.getUserData().getEmail())) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Email is already in use"));
+        }
+        if (userRepo.existsByPhone(req.getUserData().getPhone())) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Phone number is already in use"));
+        }
 
         Department dept = departmentRepo.findById(req.getDepartment().getId())
                 .orElseThrow(() -> new RuntimeException("Department not found"));
 
-        Doctor doctor = new Doctor();
-        doctor.setUser(user);
-        doctor.setDepartment(dept);
-        doctor.setTitle(req.getTitle());
-        doctor.setTimetableTemplate(req.getTimetableTemplate());
-        doctor.setActive(true);
-
+        Doctor doctor = userFactory.createDoctorAggregate(req, dept);
         Doctor savedDoctor = doctorRepo.save(doctor);
 
         List<DoctorSchedule> slots = scheduleGenerator.generate90Days(savedDoctor);
@@ -185,6 +186,9 @@ public class AdminController {
         }
 
         doctorRepo.delete(doctor);
+        String currentAdmin = SecurityContextHolder.getContext().getAuthentication().getName();
+        auditService.logAction(currentAdmin, "DELETE_DOCTOR", "Deleted Doctor ID: " + id + " (" + doctor.getUser().getFirstName() + " " + doctor.getUser().getLastName() + ")");
+
         return ResponseEntity.ok(Map.of("message", "Doctor and User account deleted permanently"));
     }
 
@@ -237,8 +241,6 @@ public class AdminController {
 
         return ResponseEntity.ok(doctor);
     }
-
-
 
     @GetMapping("/timetable-templates")
     public ResponseEntity<List<String>> getTimetableTemplates() {

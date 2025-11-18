@@ -253,11 +253,23 @@ export class AdminDashboard implements OnInit {
         next: () => {
           this.alert.success('Doctor added successfully');
           this.addDoctorForm.reset();
+          if(this.timetableTemplates.length > 0) {
+             this.addDoctorForm.patchValue({ timetableTemplate: this.timetableTemplates[0] });
+          }
           this.loadData();
         },
         error: (err) => {
           console.error('Error adding doctor:', err);
-          this.alert.error('Error adding doctor');
+          let msg = 'Failed to add doctor.';
+          
+          if (err.error) {
+             if (err.error.error) {
+                msg = err.error.error; 
+             } else {
+                msg = Object.values(err.error).join('\n');
+             }
+          }
+          this.alert.error(msg);
         }
       });
   }

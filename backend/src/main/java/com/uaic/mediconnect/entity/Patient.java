@@ -31,8 +31,8 @@ public class Patient {
     @Column(nullable = false)
     private LocalDate dateOfBirth;
 
-    @OneToMany(mappedBy = "patient", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "patient")
     @JsonIgnore
-    private List<DoctorSchedule> appointments;
+    private List<DoctorSchedule> doctorSchedules;
 
 }

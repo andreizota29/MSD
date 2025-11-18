@@ -3,6 +3,7 @@ package com.uaic.mediconnect.service;
 import com.uaic.mediconnect.entity.*;
 import com.uaic.mediconnect.repository.AppointmentRepo;
 import com.uaic.mediconnect.repository.DoctorScheduleRepo;
+import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -42,10 +43,10 @@ public class AppointmentService {
         return appointmentRepo.existsByDoctor(doctor);
     }
 
+    @Transactional
     public void cancelAppointment(Appointment appointment) {
         appointment.setStatus(AppointmentStatus.CANCELLED);
         appointmentRepo.save(appointment);
-
         freeSlot(appointment);
     }
 

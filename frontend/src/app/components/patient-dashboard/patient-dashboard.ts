@@ -22,7 +22,9 @@ interface Doctor {
   user: {
     firstName: string;
     lastName: string;
+    phone: string;
   };
+  title: string;
 }
 
 interface Slot {

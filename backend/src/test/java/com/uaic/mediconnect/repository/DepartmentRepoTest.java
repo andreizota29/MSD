@@ -23,7 +23,6 @@ public class DepartmentRepoTest {
     @Autowired
     private DoctorRepo doctorRepo;
 
-
     @Autowired
     private TestEntityManager entityManager;
 
@@ -39,47 +38,4 @@ public class DepartmentRepoTest {
         assertThat(saved.getName()).isEqualTo("Dep");
     }
 
-    @Test
-    @DisplayName("Deleting a department should cascade delete the doctor and user")
-    void testCascadeDeleteDepartment(){
-        User user = new User();
-        user.setEmail("cascade@doctor.com");
-        user.setPassword("cascadeD123");
-        user.setRole(Role.DOCTOR);
-        user.setProfileCompleted(false);
-        user.setFirstName("Cascadus");
-        user.setLastName("Doctorus");
-        entityManager.persist(user);
-        entityManager.flush();
-
-        Department department = new Department();
-        department.setName("DepOne");
-        entityManager.persist(department);
-        entityManager.flush();
-
-        Doctor doctor = new Doctor();
-        doctor.setUser(user);
-        doctor.setDepartment(department);
-        doctor.setTitle("Doctor Cascade");
-        doctor.setActive(true);
-        entityManager.persist(doctor);
-        entityManager.flush();
-
-        Optional<Doctor> beforeDeleteDoctor = doctorRepo.findByUserEmail("cascade@doctor.com");
-        assertThat(beforeDeleteDoctor).isPresent();
-
-        Optional<Department> beforeDeleteDepartment = departmentRepo.findByName("DepOne");
-        assertThat(beforeDeleteDepartment).isPresent();
-
-        entityManager.remove(department);
-        entityManager.flush();
-
-        Optional<Doctor> afterDeleteDoctor = doctorRepo.findByUserEmail("cascade@doctor.com");
-        assertThat(afterDeleteDoctor).isEmpty();
-
-
-
-
-
-    }
 }

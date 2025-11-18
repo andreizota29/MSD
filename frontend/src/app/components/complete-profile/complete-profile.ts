@@ -1,8 +1,8 @@
 import { CommonModule } from '@angular/common';
-import { HttpClient, HttpHandler, HttpHeaderResponse, HttpHeaders } from '@angular/common/http';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Component, OnInit } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { ActivatedRoute, Router } from '@angular/router';
+import { Router } from '@angular/router';
 import { Alert } from '../../services/alert';
 
 @Component({
@@ -14,52 +14,38 @@ import { Alert } from '../../services/alert';
 })
 export class CompleteProfile implements OnInit {
 
-  isEditMode = false;
+  errorMessage: string | null = null;
 
   profileForm = new FormGroup({
     cnp: new FormControl('', Validators.required),
     dateOfBirth: new FormControl('', Validators.required),
   });
 
-  constructor(private http: HttpClient, private router: Router, private route: ActivatedRoute, private alert: Alert) { }
+  constructor(private http: HttpClient, private router: Router, private alert: Alert) { }
 
   ngOnInit() {
-  const token = localStorage.getItem('token');
-  if (!token) {
-    this.router.navigate(['/login']);
-    return;
-  }
-
-  this.route.queryParams.subscribe(params => {
-    this.isEditMode = params['edit'] === 'true';
-
-    const payload = JSON.parse(atob(token.split('.')[1]));
-
-    if (payload.profileCompleted && !this.isEditMode) {
-      this.router.navigate(['/patient-dashboard']);
+    const token = localStorage.getItem('token');
+    if (!token) {
+      this.router.navigate(['/login']);
       return;
     }
-
-    if (this.isEditMode) {
-      const headers = new HttpHeaders({ 'Authorization': `Bearer ${token}` });
-      this.http.get<any>('http://localhost:5050/patient/me', { headers })
-        .subscribe({
-          next: (patient) => {
-            this.profileForm.patchValue({
-              cnp: patient.CNP,
-              dateOfBirth: patient.dateOfBirth?.substring(0, 10),
-            });
-          },
-          error: (err) => console.error(err)
-        });
+    
+    try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        if (payload.profileCompleted) {
+             this.router.navigate(['/patient-dashboard']);
+        }
+    } catch(e) {
+        this.router.navigate(['/login']);
     }
-  });
-}
+  }
 
   handleSubmit() {
-    console.log('Submit button clicked');
+    this.errorMessage = null;
+
     const token = localStorage.getItem('token');
     const headers = new HttpHeaders({ 'Authorization': `Bearer ${token}` });
+
     this.http.post<{ token: string }>(
       'http://localhost:5050/auth/complete-profile',
       this.profileForm.value,
@@ -69,37 +55,17 @@ export class CompleteProfile implements OnInit {
         if (res.token) {
           localStorage.setItem('token', res.token);
         }
-        this.alert.success(this.isEditMode ? 'Profile updated successfully!' : 'Profile completed successfully!');
+        this.alert.success('Profile completed successfully!');
         this.router.navigate(['/patient-dashboard']);
       },
-      error: (err) => console.log(err)
-    });
-
-  }
-
-  goBack() {
-    this.router.navigate(['/patient-dashboard']);
-  }
-
-  deleteAccount() {
-    if(!confirm('Are you sure you want to delete your account?')){
-
-    }
-    const token = localStorage.getItem('token');
-    const headers = new HttpHeaders({'Authorization': `Bearer ${token}`});
-
-    this.http.delete('http://localhost:5050/patient/me', {headers})
-    .subscribe({
-      next: () => {
-        this.alert.success('Account deleted successfully');
-        localStorage.clear();
-        this.router.navigate(['/login']);
-      },
       error: (err) => {
-        console.log(err);
-        this.alert.error('Failed to delete account');
+        console.error(err);
+        if (err.error && err.error.error) {
+          this.errorMessage = err.error.error; 
+        } else {
+          this.errorMessage = "Failed to save profile. Check your data.";
+        }
       }
     });
   }
-
 }

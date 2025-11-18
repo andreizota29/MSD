@@ -13,6 +13,7 @@ import { Alert } from '../../services/alert';
   styleUrl: './register.css',
 })
 export class Register {
+  errorMessage: string | null = null;
 
   public register = new FormGroup({
     firstName: new FormControl('',[Validators.required]),
@@ -29,12 +30,26 @@ export class Register {
   ) {}
 
   public handleSubmit() {
-    console.log(this.register.value); 
-    this.httpClient.post('http://localhost:5050/auth/register', this.register.value).subscribe(data => {
-      this.alert.success("Registation Successfully");
-      this.router.navigate(['/login']);
-    }, error => {
-      console.log(error);
-    })
+    this.errorMessage = null;
+
+    this.httpClient.post('http://localhost:5050/auth/register', this.register.value)
+      .subscribe({
+        next: () => {
+          this.alert.success("Registration Successful! Please log in.");
+          this.router.navigate(['/login']);
+        },
+        error: (err) => {
+          console.error(err);
+
+          if (err.error && typeof err.error === 'object') {
+
+             this.errorMessage = Object.values(err.error).join('\n');
+          } else if (err.error && typeof err.error === 'string') {
+             this.errorMessage = err.error;
+          } else {
+             this.errorMessage = "Registration failed. Please check your inputs.";
+          }
+        }
+      });
   }
 }

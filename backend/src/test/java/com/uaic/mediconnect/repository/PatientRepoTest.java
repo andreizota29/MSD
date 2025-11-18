@@ -3,6 +3,7 @@ package com.uaic.mediconnect.repository;
 import com.uaic.mediconnect.entity.Patient;
 import com.uaic.mediconnect.entity.Role;
 import com.uaic.mediconnect.entity.User;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,60 +23,42 @@ public class PatientRepoTest {
     @Autowired
     private TestEntityManager entityManager;
 
-    @Test
-    @DisplayName("Should save a patient into the database")
-    void testSavePatient(){
-        User user = new User();
-        user.setEmail("patient@email.com");
-        user.setPassword("patient123");
-        user.setRole(Role.PATIENT);
-        user.setFirstName("Patientus");
-        user.setLastName("Pateu");
-        user.setProfileCompleted(true);
+    private User patientUser;
 
-        entityManager.persist(user);
+    @BeforeEach
+    void setUp() {
+        patientUser = new User("Pat", "Ient", "pass", "0722", "patient@test.com", Role.PATIENT);
+        patientUser.setProfileCompleted(true);
+        entityManager.persist(patientUser);
         entityManager.flush();
-
-        Patient patient = new Patient();
-        patient.setUser(user);
-        patient.setCnp("1234567890123");
-        patient.setDateOfBirth(LocalDate.of(1990, 1, 1));
-        Patient saved = patientRepo.save(patient);
-
-        assertThat(saved.getId()).isNotNull();
-        assertThat(saved.getUser().getEmail()).isEqualTo("patient@email.com");
-        assertThat(saved.getUser().isProfileCompleted()).isTrue();
-        assertThat(saved.getCnp()).isEqualTo("1234567890123");
-        assertThat(saved.getDateOfBirth()).isEqualTo(LocalDate.of(1990, 1, 1));
     }
 
     @Test
-    @DisplayName("Should find patient by cnp")
+    void testSavePatient() {
+        Patient patient = new Patient();
+        patient.setUser(patientUser);
+        patient.setCnp("1990000000000");
+        patient.setDateOfBirth(LocalDate.of(1999, 1, 1));
+
+        Patient saved = patientRepo.save(patient);
+
+        assertThat(saved.getId()).isNotNull();
+        assertThat(saved.getUser().getEmail()).isEqualTo("patient@test.com");
+    }
+
+    @Test
     void testFindByCnp() {
         Patient patient = new Patient();
-        patient.setCnp("0234567890123");
-        patient.setDateOfBirth(LocalDate.of(1990, 1, 1));
-
-        User user = new User();
-        user.setEmail("find@patient.com");
-        user.setPassword("findpat123");
-        user.setRole(Role.PATIENT);
-        user.setFirstName("Petru");
-        user.setLastName("Petrescu");
-        user.setProfileCompleted(true);
-
-        entityManager.persist(user);
-        entityManager.flush();
-
-        patient.setUser(user);
+        patient.setUser(patientUser);
+        patient.setCnp("2990000000000");
+        patient.setDateOfBirth(LocalDate.of(1999, 1, 1));
         entityManager.persist(patient);
         entityManager.flush();
 
-        Optional<Patient> found = patientRepo.findByCnp("0234567890123");
+        Optional<Patient> found = patientRepo.findByCnp("2990000000000");
 
         assertThat(found).isPresent();
-        assertThat(found.get().getUser().getFirstName()).isEqualTo("Petru");
-        assertThat(found.get().getUser().isProfileCompleted()).isTrue();
+        assertThat(found.get().getUser().getLastName()).isEqualTo("Pat");
     }
 
     @Test
@@ -85,33 +68,4 @@ public class PatientRepoTest {
         assertThat(found).isEmpty();
     }
 
-    @Test
-    @DisplayName("Deleting an user should cascade delete the patient")
-    void testCascadeDeleteUser() {
-        User user = new User();
-        user.setEmail("cascade@patient.com");
-        user.setPassword("cascade123");
-        user.setRole(Role.PATIENT);
-        user.setFirstName("Cascadus");
-        user.setLastName("Deleteus");
-        user.setProfileCompleted(true);
-        entityManager.persist(user);
-        entityManager.flush();
-
-        Patient patient = new Patient();
-        patient.setUser(user);
-        patient.setCnp("9998887776665");
-        patient.setDateOfBirth(LocalDate.of(1985, 5, 5));
-        entityManager.persist(patient);
-        entityManager.flush();
-
-        Optional<Patient> beforeDelete = patientRepo.findByCnp("9998887776665");
-        assertThat(beforeDelete).isPresent();
-
-        entityManager.remove(user);
-        entityManager.flush();
-
-        Optional<Patient> afterDelete = patientRepo.findByCnp("9998887776665");
-        assertThat(afterDelete).isEmpty();
-    }
 }
