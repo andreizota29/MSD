@@ -124,7 +124,7 @@ public class PatientController {
         var patient = patientService.findByUser(userOpt.get()).get();
 
         List<AppointmentDTO> dtos = appointmentService.findByPatient(patient).stream()
-                .filter(a -> a.getStatus() == AppointmentStatus.SCHEDULED || a.getStatus() == AppointmentStatus.COMPLETED)
+                .filter(a -> a.getStatus() == AppointmentStatus.SCHEDULED)
                 .map(mapper::toDTO)
                 .toList();
 
