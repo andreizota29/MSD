@@ -176,19 +176,17 @@ public class AdminController {
         doctor.getServices().clear();
         doctorRepo.save(doctor);
 
-
-
         List<Appointment> appointments = appointmentService.findByDoctor(doctor);
         for (Appointment app : appointments) {
-            app.setDoctor(null);
-
-            app.setDoctorSchedule(null);
-
-            if (app.getStatus() == AppointmentStatus.SCHEDULED) {
-                app.setStatus(AppointmentStatus.CANCELLED);
+            DoctorSchedule slot = app.getDoctorSchedule();
+            if (slot != null) {
+                slot.setBooked(false);
+                slot.setPatient(null);
+                scheduleRepo.save(slot);
             }
 
-            appointmentService.save(app);
+
+            appointmentService.delete(app);
         }
 
         scheduleRepo.deleteAllByDoctor(doctor);
