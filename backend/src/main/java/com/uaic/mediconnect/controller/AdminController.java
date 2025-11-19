@@ -173,21 +173,30 @@ public class AdminController {
         }
 
         Doctor doctor = doctorOpt.get();
-        scheduleRepo.deleteAllByDoctor(doctor);
+        doctor.getServices().clear();
+        doctorRepo.save(doctor);
+
+
 
         List<Appointment> appointments = appointmentService.findByDoctor(doctor);
         for (Appointment app : appointments) {
             app.setDoctor(null);
-            appointmentService.save(app);
+
+            app.setDoctorSchedule(null);
 
             if (app.getStatus() == AppointmentStatus.SCHEDULED) {
                 app.setStatus(AppointmentStatus.CANCELLED);
             }
+
+            appointmentService.save(app);
         }
 
-        doctorRepo.delete(doctor);
+        scheduleRepo.deleteAllByDoctor(doctor);
+
         String currentAdmin = SecurityContextHolder.getContext().getAuthentication().getName();
-        auditService.logAction(currentAdmin, "DELETE_DOCTOR", "Deleted Doctor ID: " + id + " (" + doctor.getUser().getFirstName() + " " + doctor.getUser().getLastName() + ")");
+        auditService.logAction(currentAdmin, "DELETE_DOCTOR", "Deleted Doctor ID: " + id);
+
+        doctorRepo.delete(doctor);
 
         return ResponseEntity.ok(Map.of("message", "Doctor and User account deleted permanently"));
     }
