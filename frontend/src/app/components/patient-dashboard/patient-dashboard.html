@@ -15,7 +15,9 @@
       <label>Service</label>
       <select [(ngModel)]="selectedServiceId" (change)="loadSlots()" [disabled]="!selectedDepartmentId">
         <option [ngValue]="null">-- Select Service --</option>
-        <option *ngFor="let s of services" [ngValue]="s.id">{{s.name}}</option>
+        <option *ngFor="let s of services" [ngValue]="s.id">
+          {{s.name}} - {{s.price}} RON
+        </option>
       </select>
     </div>
 

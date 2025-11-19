@@ -131,30 +131,6 @@ public class PatientController {
         return ResponseEntity.ok(dtos);
     }
 
-    @PostMapping
-    public ResponseEntity<?> createAppointment(HttpServletRequest request, @RequestBody Appointment appointment) {
-        var userOpt = authHelper.getPatientUserFromRequest(request);
-        if (userOpt.isEmpty()) {
-            return ResponseEntity.status(401).body("Invalid or unauthorized user");
-        }
-
-        var patientOpt = patientService.findByUser(userOpt.get());
-        if (patientOpt.isEmpty()) {
-            return ResponseEntity.badRequest().body("Patient not found");
-        }
-
-        appointment.setPatient(patientOpt.get());
-
-        try {
-            ClinicService service = clinicServiceService.getServiceById(appointment.getService().getId());
-            appointment.setService(service);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body("Invalid service ID");
-        }
-
-        var savedAppointment = appointmentService.save(appointment);
-        return ResponseEntity.status(HttpStatus.CREATED).body(savedAppointment);
-    }
 
     @DeleteMapping("/appointments/{id}")
     public ResponseEntity<?> cancelAppointment(HttpServletRequest request, @PathVariable Long id) {
@@ -241,9 +217,9 @@ public class PatientController {
             String patientEmail = patient.getUser().getEmail();
             String patientSubject = "Appointment Confirmation";
             String patientText = String.format(
-                    "Hello %s %s,\n\nYour appointment for '%s' with Dr. %s %s on %s at %s has been successfully booked.\n\nThank you!",
+                    "Hello %s %s,\n\nYour appointment for '%s' [ '%.2f' RON ] with Dr. %s %s on %s at %s has been successfully booked.\n\nThank you!",
                     patient.getUser().getFirstName(), patient.getUser().getLastName(),
-                    service.getName(),
+                    service.getName(), service.getPrice(),
                     slot.getDoctor().getUser().getFirstName(), slot.getDoctor().getUser().getLastName(),
                     slot.getDate().toString(), slot.getStartTime()
             );

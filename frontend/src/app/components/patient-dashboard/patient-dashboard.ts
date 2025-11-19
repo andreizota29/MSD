@@ -62,7 +62,7 @@ export class PatientDashboard implements OnInit {
   selectedServiceId: number | null = null;
   groupedSlots: { doctor: Doctor; slots: Slot[] }[] = [];
   appointments: Appointment[] = [];
-showAppointments = false;
+  showAppointments = false;
 
   selectedDate: Date = new Date();
   slots: Slot[] = [];
@@ -101,7 +101,7 @@ showAppointments = false;
   toggleAppointments() {
     this.showAppointments = !this.showAppointments;
     if (this.showAppointments) {
-      this.loadAppointments(); 
+      this.loadAppointments();
     }
   }
 
@@ -115,24 +115,24 @@ showAppointments = false;
   }
 
   goToChangePassword() {
-  this.router.navigate(['/change-password']);
-}
+    this.router.navigate(['/change-password']);
+  }
 
   onDepartmentChange() {
-  this.selectedServiceId = null;
-  this.services = [];
-  this.selectedDate = new Date();  
-  this.groupedSlots = [];         
-  this.selectedSlotId = null;     
+    this.selectedServiceId = null;
+    this.services = [];
+    this.selectedDate = new Date();
+    this.groupedSlots = [];
+    this.selectedSlotId = null;
 
-  if (!this.selectedDepartmentId) return;
+    if (!this.selectedDepartmentId) return;
 
-  this.http.get<ClinicService[]>(`http://localhost:5050/patient/departments/${this.selectedDepartmentId}/services`, this.getAuthHeaders())
-    .subscribe(res => {
-      console.log('Services from backend:', res);
-      this.services = res;
-    });
-}
+    this.http.get<ClinicService[]>(`http://localhost:5050/patient/departments/${this.selectedDepartmentId}/services`, this.getAuthHeaders())
+      .subscribe(res => {
+        console.log('Services from backend:', res);
+        this.services = res;
+      });
+  }
   prevDay() {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -152,36 +152,36 @@ showAppointments = false;
   }
 
   loadSlots() {
-  if (!this.selectedDepartmentId || !this.selectedServiceId) return;
+    if (!this.selectedDepartmentId || !this.selectedServiceId) return;
 
-  const dateStr = this.selectedDate.toISOString().split('T')[0];
-  const now = new Date();
+    const dateStr = this.selectedDate.toISOString().split('T')[0];
+    const now = new Date();
 
-  this.http.get<Slot[]>(`http://localhost:5050/patient/departments/${this.selectedDepartmentId}/services/${this.selectedServiceId}/slots?date=${dateStr}`, this.getAuthHeaders())
-    .subscribe(res => {
-      let freeSlots = res.filter(s => !s.booked);
+    this.http.get<Slot[]>(`http://localhost:5050/patient/departments/${this.selectedDepartmentId}/services/${this.selectedServiceId}/slots?date=${dateStr}`, this.getAuthHeaders())
+      .subscribe(res => {
+        let freeSlots = res.filter(s => !s.booked);
 
-      const selectedDateStr = this.selectedDate.toISOString().split('T')[0];
-      const todayStr = now.toISOString().split('T')[0];
-      if (selectedDateStr === todayStr) {
-        freeSlots = freeSlots.filter(s => {
-          const slotEnd = new Date(`${s.date}T${s.endTime}`);
-          return slotEnd.getTime() > now.getTime();
-        });
-      }
-
-      const groups: any = {};
-      freeSlots.forEach(slot => {
-        if (!groups[slot.doctor.id]) {
-          groups[slot.doctor.id] = { doctor: slot.doctor, slots: [] };
+        const selectedDateStr = this.selectedDate.toISOString().split('T')[0];
+        const todayStr = now.toISOString().split('T')[0];
+        if (selectedDateStr === todayStr) {
+          freeSlots = freeSlots.filter(s => {
+            const slotEnd = new Date(`${s.date}T${s.endTime}`);
+            return slotEnd.getTime() > now.getTime();
+          });
         }
-        groups[slot.doctor.id].slots.push(slot);
-      });
 
-      this.groupedSlots = Object.values(groups);
-      this.selectedSlotId = null;
-    });
-}
+        const groups: any = {};
+        freeSlots.forEach(slot => {
+          if (!groups[slot.doctor.id]) {
+            groups[slot.doctor.id] = { doctor: slot.doctor, slots: [] };
+          }
+          groups[slot.doctor.id].slots.push(slot);
+        });
+
+        this.groupedSlots = Object.values(groups);
+        this.selectedSlotId = null;
+      });
+  }
 
   selectSlot(slotId: number) {
     this.selectedSlotId = slotId;
@@ -202,7 +202,7 @@ showAppointments = false;
         this.alert.success('Appointment booked successfully!');
 
         if (this.showAppointments) {
-             this.loadAppointments(); 
+          this.loadAppointments();
         }
         this.selectedDepartmentId = null;
         this.selectedServiceId = null;
@@ -221,26 +221,26 @@ showAppointments = false;
   }
 
   loadAppointments() {
-  this.http.get<Appointment[]>('http://localhost:5050/patient/appointments/list', this.getAuthHeaders())
-    .subscribe(res => {
-      this.appointments = res;
-      this.showAppointments = true;
-    });
-}
+    this.http.get<Appointment[]>('http://localhost:5050/patient/appointments/list', this.getAuthHeaders())
+      .subscribe(res => {
+        this.appointments = res;
+        this.showAppointments = true;
+      });
+  }
 
-cancelAppointment(id: number) {
-  if (!confirm("Are you sure you want to cancel this appointment?")) return;
+  cancelAppointment(id: number) {
+    if (!confirm("Are you sure you want to cancel this appointment?")) return;
 
-  this.http.delete(`http://localhost:5050/patient/appointments/${id}`, this.getAuthHeaders())
-    .subscribe({
-      next: res => {
-        this.alert.success("Appointment cancelled successfully");
-        this.loadAppointments(); 
-      },
-      error: err => {
-        console.log(err);
-        this.alert.error("Cannot cancel appointment");
-      }
-    });
-}
+    this.http.delete(`http://localhost:5050/patient/appointments/${id}`, this.getAuthHeaders())
+      .subscribe({
+        next: res => {
+          this.alert.success("Appointment cancelled successfully");
+          this.loadAppointments();
+        },
+        error: err => {
+          console.log(err);
+          this.alert.error("Cannot cancel appointment");
+        }
+      });
+  }
 }
