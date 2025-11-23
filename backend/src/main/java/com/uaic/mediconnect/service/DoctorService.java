@@ -49,7 +49,7 @@ public class DoctorService {
 
     @Autowired
     private DtoMapper mapper;
-    
+
 
     public Doctor saveDoctor(Doctor doctor){
         return doctorRepo.save(doctor);
