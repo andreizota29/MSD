@@ -10,4 +10,5 @@ public interface PatientRepo extends JpaRepository<Patient, Long> {
     Optional<Patient> findByUser_UserId(Long userId);
     Optional<Patient> findByUser(User user);
     Optional<Patient> findByCnp(String cnp);
+    boolean existsByCnp(String cnp);
 }

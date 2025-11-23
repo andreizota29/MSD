@@ -13,4 +13,5 @@ public interface AppointmentRepo extends JpaRepository<Appointment, Long> {
     void deleteAllByDoctorSchedule(DoctorSchedule schedule);
     boolean existsByDoctor(Doctor doctor);
     List<Appointment> findByService(ClinicService service);
+    List<Appointment> findByStatus(AppointmentStatus status);
 }

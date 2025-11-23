@@ -2,6 +2,7 @@ package com.uaic.mediconnect.service;
 
 import com.uaic.mediconnect.dto.CreateDoctorRequest;
 import com.uaic.mediconnect.dto.DoctorDTO;
+import com.uaic.mediconnect.dto.DoctorScheduleDTO;
 import com.uaic.mediconnect.entity.*;
 import com.uaic.mediconnect.factory.UserFactory;
 import com.uaic.mediconnect.mapper.DtoMapper;
@@ -14,6 +15,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -181,4 +186,47 @@ public class DoctorService {
         }
         auditService.logAction(adminEmail, "UPDATE_DOCTOR", "Updated ID: " + doctorId);
     }
+
+    @Transactional(readOnly = true)
+    public List<DoctorScheduleDTO> getWeeklyTimetable(Doctor doctor, String start){
+        LocalDate monday = LocalDate.parse(start);
+        LocalDate sunday = monday.plusDays(6);
+        return scheduleRepo.findByDoctorAndDateBetweenOrderByDateAscStartTimeAsc(doctor, monday, sunday)
+                .stream()
+                .map(mapper::toDTO)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<DoctorScheduleDTO> getAllTimetable(Doctor doctor){
+        return scheduleRepo.findByDoctorOrderByDateAscStartTimeAsc(doctor)
+                .stream()
+                .map(mapper::toDTO)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<DoctorScheduleDTO> getAvailableSlots(Long deptId, String dateStr) {
+        LocalDate targetDate = LocalDate.parse(dateStr);
+        LocalTime currentTime = LocalTime.now(ZoneId.of("Europe/Bucharest"));
+        LocalDate today = LocalDate.now(ZoneId.of("Europe/Bucharest"));
+
+        Department dept = departmentRepo.findById(deptId).orElseThrow(() -> new RuntimeException("Department not found"));
+        List<Doctor> doctors = findByDepartment(dept);
+
+        List<DoctorSchedule> allSlots = new ArrayList<>();
+
+        for (Doctor d : doctors) {
+            List<DoctorSchedule> slots = scheduleRepo.findByDoctorAndDateAndBookedFalseOrderByStartTimeAsc(d, targetDate);
+            if (targetDate.equals(today)) {
+                slots = slots.stream()
+                        .filter(s -> s.getStartTime().isAfter(currentTime))
+                        .toList();
+            }
+            allSlots.addAll(slots);
+        }
+
+        return allSlots.stream().map(mapper::toDTO).toList();
+    }
+
 }

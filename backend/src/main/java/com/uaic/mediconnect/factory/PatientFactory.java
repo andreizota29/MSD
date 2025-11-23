@@ -20,7 +20,7 @@ public class PatientFactory {
         user.setLastName(req.getLastName());
         user.setEmail(req.getEmail());
         user.setPhone(req.getPhone());
-        user.setPassword(passwordEncoder.encode(req.getPassword())); // Encode here
+        user.setPassword(passwordEncoder.encode(req.getPassword()));
         user.setRole(Role.PATIENT);
         user.setProfileCompleted(false);
         return user;

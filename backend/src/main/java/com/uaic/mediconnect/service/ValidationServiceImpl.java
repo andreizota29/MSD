@@ -10,6 +10,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 
 @Service
 public class ValidationServiceImpl implements ValidationService{
@@ -36,6 +38,13 @@ public class ValidationServiceImpl implements ValidationService{
                 .orElseThrow(() -> new BusinessValidationException("Time slot not found."));
         if(slot.isBooked()) {
             throw new BusinessValidationException("This time slot is already booked.");
+        }
+
+        LocalDateTime slotTime = LocalDateTime.of(slot.getDate(), slot.getStartTime());
+        LocalDateTime now = LocalDateTime.now(ZoneId.of("Europe/Bucharest"));
+
+        if (slotTime.isBefore(now)) {
+            throw new BusinessValidationException("Cannot book an appointment in the past.");
         }
 
         ClinicService service = serviceRepo.findById(serviceId)

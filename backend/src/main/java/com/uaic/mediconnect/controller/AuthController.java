@@ -31,102 +31,51 @@ import java.util.Optional;
 public class AuthController {
 
     @Autowired
-    private UserService userService;
-
-    @Autowired
-    private PatientService patientService;
+    private AuthService authService;
 
     @Autowired
     private AuthHelperService authHelper;
 
     @Autowired
-    private JwtUtil jwtUtil;
-
-    @Autowired
-    private DoctorRepo doctorRepo;
+    private UserService userService;
 
     @Autowired
     private EmailService emailService;
 
     @Autowired
-    private PatientFactory patientFactory;
-
-    @Autowired
-    private ValidationServiceImpl validationService;
-
-    @Autowired
-    private UserRepo userRepo;
+    private JwtUtil jwtUtil;
 
     @PostMapping("/register")
-    public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest inputUser){
-        if (userRepo.existsByEmail(inputUser.getEmail())) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Email is already in use"));
+    public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest req){
+        try {
+            User savedUser = authService.register(req);
+            return ResponseEntity.ok(savedUser);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
-        if (userRepo.existsByPhone(inputUser.getPhone())) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Phone number is already in use"));
-        }
-        User userToSave = patientFactory.createPatientUser(inputUser);
-        userService.saveWithoutEncoding(userToSave);
-
-        return ResponseEntity.ok(userToSave);
     }
-    @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody LoginRequest loginRequest) {
-        var userOpt = userService.findByEmail(loginRequest.getEmail());
-        if (userOpt.isEmpty()) {
-            return ResponseEntity.status(401).body(Map.of("error", "Invalid credentials"));
-        }
-        var user = userOpt.get();
-        if (!userService.checkPassword(loginRequest.getPassword(), user.getPassword())) {
-            return ResponseEntity.status(401).body(Map.of("error", "Invalid credentials"));
-        }
-        if (user.getRole() == Role.DOCTOR) {
-            Doctor doctor = doctorRepo.findByUser_UserId(user.getUserId())
-                    .orElseThrow(() -> new UsernameNotFoundException("Doctor account not found"));
 
-            if (!doctor.isActive()) {
-                return ResponseEntity.status(403).body(Map.of("error", "Doctor account is inactive"));
-            }
+    @PostMapping("/login")
+    public ResponseEntity<?> login(@RequestBody LoginRequest req) {
+        try {
+            return ResponseEntity.ok(authService.login(req));
+        } catch (RuntimeException e) {
+            if(e.getMessage().contains("inactive")) return ResponseEntity.status(403).body(Map.of("error", e.getMessage()));
+            return ResponseEntity.status(401).body(Map.of("error", e.getMessage()));
         }
-        return ResponseEntity.ok(authHelper.generateAuthResponse(user));
     }
 
     @PostMapping("/complete-profile")
-    public ResponseEntity<?> completeProfile(@RequestBody Patient patientData, HttpServletRequest request){
+    public ResponseEntity<?> completeProfile(@RequestBody Patient patientData, HttpServletRequest request) {
         var userOpt = authHelper.getPatientUserFromRequest(request);
-        if(userOpt.isEmpty()){
-            return ResponseEntity.status(401).body("Invalid or unauthorized user");
-        }
-
-        var user = userOpt.get();
-        Patient patientToCheck;
-        var patientOpt = patientService.findByUser(user);
-
-        if(patientOpt.isPresent()){
-            patientToCheck = patientOpt.get();
-            patientToCheck.setCnp(patientData.getCnp());
-            patientToCheck.setDateOfBirth(patientData.getDateOfBirth());
-        } else{
-            patientToCheck = patientFactory.createPatientAggregate(user, patientData);
+        if(userOpt.isEmpty()) {
+            return  ResponseEntity.status(401).body("Unauthorized");
         }
         try {
-            validationService.validatePatientProfileData(patientToCheck);
-        } catch (Exception e) {
+            return ResponseEntity.ok(authService.completeProfile(userOpt.get(), patientData));
+        } catch (Exception e ) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
-        patientService.addPatient(patientToCheck);
-        if(!user.isProfileCompleted()) {
-            user.setProfileCompleted(true);
-            userService.saveWithoutEncoding(user);
-        }
-
-        String newToken = jwtUtil.generateToken(
-                user.getEmail(),
-                user.getRole().name(),
-                user.getUserId(),
-                user.isProfileCompleted()
-        );
-        return ResponseEntity.ok(Map.of("message","Profile completed successfully", "token", newToken));
     }
 
     @GetMapping("/me")

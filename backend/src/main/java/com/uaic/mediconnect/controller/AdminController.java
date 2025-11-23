@@ -2,12 +2,9 @@ package com.uaic.mediconnect.controller;
 
 import com.uaic.mediconnect.dto.*;
 import com.uaic.mediconnect.entity.*;
-import com.uaic.mediconnect.factory.ClinicFactory;
-import com.uaic.mediconnect.factory.UserFactory;
 import com.uaic.mediconnect.mapper.DtoMapper;
 import com.uaic.mediconnect.repository.*;
 import com.uaic.mediconnect.service.*;
-import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -23,8 +20,6 @@ import java.util.Map;
 @RequestMapping("/admin")
 @CrossOrigin(origins = "http://localhost:4200")
 public class AdminController {
-
-
     @Autowired
     private ScheduleGenerator scheduleGenerator;
 
@@ -45,7 +40,6 @@ public class AdminController {
 
     @Autowired
     private DtoMapper mapper;
-
 
     @GetMapping("/departments")
     public ResponseEntity<List<DepartmentDTO>> getAllDepartments(){

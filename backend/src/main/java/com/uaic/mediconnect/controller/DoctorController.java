@@ -1,5 +1,6 @@
 package com.uaic.mediconnect.controller;
 
+import com.uaic.mediconnect.dto.AppointmentDTO;
 import com.uaic.mediconnect.dto.DoctorScheduleDTO;
 import com.uaic.mediconnect.entity.Appointment;
 import com.uaic.mediconnect.entity.Doctor;
@@ -17,6 +18,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/doctor")
@@ -32,58 +34,54 @@ public class DoctorController {
     @Autowired
     private AppointmentService appointmentService;
 
-    @Autowired
-    private DoctorScheduleRepo scheduleRepo;
+//    @GetMapping("/appointments")
+//    public ResponseEntity<?> getMyAppointments(HttpServletRequest request){
+//        var userOpt = authHelperService.getDoctorUserFromRequest(request);
+//        if(userOpt.isEmpty()){
+//            return ResponseEntity.status(401).body("Unauthorized");
+//        }
+//        var doctorOpt = doctorService.findByUser(userOpt.get());
+//        if(doctorOpt.isEmpty()){
+//            return ResponseEntity.badRequest().body("Doctor not found");
+//        }
+//        List<Appointment> appointments = appointmentService.findByDoctor(doctorOpt.get());
+//        return ResponseEntity.ok(appointments);
+//    }
 
-    @Autowired
-    private DtoMapper mapper;
+    private Optional<Doctor> getAuthenticatedDoctor(HttpServletRequest request) {
+        return authHelperService.getDoctorUserFromRequest(request)
+                .flatMap(doctorService::findByUser);
+    }
 
     @GetMapping("/appointments")
     public ResponseEntity<?> getMyAppointments(HttpServletRequest request){
-        var userOpt = authHelperService.getDoctorUserFromRequest(request);
-        if(userOpt.isEmpty()){
-            return ResponseEntity.status(401).body("Unauthorized");
-        }
-        var doctorOpt = doctorService.findByUser(userOpt.get());
+        Optional<Doctor> doctorOpt = getAuthenticatedDoctor(request);
         if(doctorOpt.isEmpty()){
-            return ResponseEntity.badRequest().body("Doctor not found");
+            return ResponseEntity.status(401).body("Unauthorized or Doctor not found");
         }
-        List<Appointment> appointments = appointmentService.findByDoctor(doctorOpt.get());
+        List<AppointmentDTO> appointments = appointmentService.getDoctorAppointments(doctorOpt.get());
         return ResponseEntity.ok(appointments);
+
     }
 
     @GetMapping("/timetable")
     public ResponseEntity<?> getTimetable(HttpServletRequest request){
-        var doctor = authHelperService.getDoctorUserFromRequest(request)
-                .flatMap(doctorService::findByUser);
-
-        if (doctor.isEmpty())
+        Optional<Doctor> doctorOpt = getAuthenticatedDoctor(request);
+        if(doctorOpt.isEmpty()) {
             return ResponseEntity.status(401).body("Unauthorized");
-
-        List<DoctorSchedule> slots =
-                scheduleRepo.findByDoctorOrderByDateAscStartTimeAsc(doctor.get());
-
+        }
+        List<DoctorScheduleDTO> slots = doctorService.getAllTimetable(doctorOpt.get());
         return ResponseEntity.ok(slots);
     }
 
     @GetMapping("/timetable/week")
-    public ResponseEntity<List<DoctorScheduleDTO>> getWeeklyTimetable(
-            HttpServletRequest request, @RequestParam String start) {
+    public ResponseEntity<List<DoctorScheduleDTO>> getWeeklyTimetable(HttpServletRequest request, @RequestParam String start){
+        Optional<Doctor> doctorOpt = getAuthenticatedDoctor(request);
+        if(doctorOpt.isEmpty()) return ResponseEntity.status(401).build();
 
-        var doctorOpt = authHelperService.getDoctorUserFromRequest(request)
-                .flatMap(doctorService::findByUser);
-
-        if (doctorOpt.isEmpty()) return ResponseEntity.status(401).build();
-
-        LocalDate monday = LocalDate.parse(start);
-        LocalDate sunday = monday.plusDays(6);
-
-        List<DoctorScheduleDTO> dtos = scheduleRepo.findByDoctorAndDateBetweenOrderByDateAscStartTimeAsc(
-                        doctorOpt.get(), monday, sunday)
-                .stream()
-                .map(mapper::toDTO)
-                .toList();
-
+        List<DoctorScheduleDTO> dtos = doctorService.getWeeklyTimetable(doctorOpt.get(), start);
         return ResponseEntity.ok(dtos);
+
     }
+
 }

@@ -146,6 +146,8 @@ export class PatientDashboard implements OnInit {
     this.loadSlots();
   }
 
+  
+
   nextDay() {
     this.selectedDate.setDate(this.selectedDate.getDate() + 1);
     this.loadSlots();
@@ -154,22 +156,11 @@ export class PatientDashboard implements OnInit {
   loadSlots() {
     if (!this.selectedDepartmentId || !this.selectedServiceId) return;
 
-    const dateStr = this.selectedDate.toISOString().split('T')[0];
-    const now = new Date();
+    const dateStr = this.getIsoDateString(this.selectedDate);
 
     this.http.get<Slot[]>(`http://localhost:5050/patient/departments/${this.selectedDepartmentId}/services/${this.selectedServiceId}/slots?date=${dateStr}`, this.getAuthHeaders())
       .subscribe(res => {
         let freeSlots = res.filter(s => !s.booked);
-
-        const selectedDateStr = this.selectedDate.toISOString().split('T')[0];
-        const todayStr = now.toISOString().split('T')[0];
-        if (selectedDateStr === todayStr) {
-          freeSlots = freeSlots.filter(s => {
-            const slotEnd = new Date(`${s.date}T${s.endTime}`);
-            return slotEnd.getTime() > now.getTime();
-          });
-        }
-
         const groups: any = {};
         freeSlots.forEach(slot => {
           if (!groups[slot.doctor.id]) {
@@ -181,6 +172,12 @@ export class PatientDashboard implements OnInit {
         this.groupedSlots = Object.values(groups);
         this.selectedSlotId = null;
       });
+  }
+  private getIsoDateString(date: Date): string {
+    const year = date.getFullYear();
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const day = date.getDate().toString().padStart(2, '0');
+    return `${year}-${month}-${day}`;
   }
 
   selectSlot(slotId: number) {

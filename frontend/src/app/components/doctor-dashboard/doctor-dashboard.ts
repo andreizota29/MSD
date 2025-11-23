@@ -48,7 +48,11 @@ export class DoctorDashboard implements OnInit {
 
   changeWeek(offset: number) {
     if (offset < 0 && !this.canGoBack) return;
-    this.weekStart = new Date(this.weekStart.getTime() + offset * 7 * 24 * 60 * 60 * 1000);
+    const newDate = new Date(this.weekStart);
+
+    newDate.setDate(newDate.getDate() + (offset * 7));
+    
+    this.weekStart = newDate;
     this.loadWeek();
   }
 
