@@ -67,6 +67,9 @@ public class AdminController {
     @Autowired
     private ClinicFactory clinicFactory;
 
+    @Autowired
+    private DoctorService doctorService;
+
     @GetMapping("/departments")
     public ResponseEntity<List<DepartmentDTO>> getAllDepartments(){
         List<DepartmentDTO> dtos = departmentRepo.findAll().stream()
@@ -132,11 +135,9 @@ public class AdminController {
     }
 
     @GetMapping("/doctors")
-    public ResponseEntity<List<DoctorDTO>> getAllDoctors() {
-        List<DoctorDTO> dtos = doctorRepo.findByActiveTrue().stream()
-                .map(mapper::toDTO)
-                .toList();
-        return ResponseEntity.ok(dtos);
+    public ResponseEntity<List<DoctorDTO>> getAllDoctors(){
+        List<DoctorDTO> doctors = doctorService.getAllDoctorsFully();
+        return ResponseEntity.ok(doctors);
     }
 
     @PostMapping("/doctors")
@@ -144,109 +145,36 @@ public class AdminController {
         if (req.getUserData() == null || req.getDepartment() == null) {
             return ResponseEntity.badRequest().body(Map.of("error", "Invalid data"));
         }
+        String currentAdmin = SecurityContextHolder.getContext().getAuthentication().getName();
+        try {
+            Doctor savedDoctor = doctorService.createDoctorFully(req, currentAdmin);
+            return ResponseEntity.status(HttpStatus.CREATED).body(mapper.toDTO(savedDoctor));
 
-        if (userRepo.existsByEmail(req.getUserData().getEmail())) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Email is already in use"));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
-        if (userRepo.existsByPhone(req.getUserData().getPhone())) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Phone number is already in use"));
-        }
-
-        Department dept = departmentRepo.findById(req.getDepartment().getId())
-                .orElseThrow(() -> new RuntimeException("Department not found"));
-
-        Doctor doctor = userFactory.createDoctorAggregate(req, dept);
-        Doctor savedDoctor = doctorRepo.save(doctor);
-
-        List<DoctorSchedule> slots = scheduleGenerator.generate90Days(savedDoctor);
-        scheduleRepo.saveAll(slots);
-
-        return ResponseEntity.status(HttpStatus.CREATED).body(mapper.toDTO(savedDoctor));
     }
 
     @DeleteMapping("/doctors/{id}")
-    @Transactional
-    public ResponseEntity<?> deleteDoctor(@PathVariable Long id) {
-        var doctorOpt = doctorRepo.findById(id);
-        if (doctorOpt.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Doctor not found");
-        }
-
-        Doctor doctor = doctorOpt.get();
-        doctor.getServices().clear();
-        doctorRepo.save(doctor);
-
-        List<Appointment> appointments = appointmentService.findByDoctor(doctor);
-        for (Appointment app : appointments) {
-            DoctorSchedule slot = app.getDoctorSchedule();
-            if (slot != null) {
-                slot.setBooked(false);
-                slot.setPatient(null);
-                scheduleRepo.save(slot);
-            }
-
-
-            appointmentService.delete(app);
-        }
-
-        scheduleRepo.deleteAllByDoctor(doctor);
-
+    public ResponseEntity<?> deleteDoctor(@PathVariable Long id){
         String currentAdmin = SecurityContextHolder.getContext().getAuthentication().getName();
-        auditService.logAction(currentAdmin, "DELETE_DOCTOR", "Deleted Doctor ID: " + id);
-
-        doctorRepo.delete(doctor);
-
-        return ResponseEntity.ok(Map.of("message", "Doctor and User account deleted permanently"));
+        try{
+            doctorService.deleteDoctorFully(id, currentAdmin);
+            return ResponseEntity.ok(Map.of("message", "Doctor deleted successfully"));
+        } catch (RuntimeException e){
+            return ResponseEntity.status(404).body(Map.of("error", e.getMessage()));
+        }
     }
 
     @PutMapping("/doctors/{id}")
-    @Transactional
-    public ResponseEntity<?> updateDoctor(@PathVariable Long id, @RequestBody Doctor updatedDoctor) {
-
-        var doctorOpt = doctorRepo.findById(id);
-        if (doctorOpt.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Doctor not found");
+    public ResponseEntity<?> updateDoctor(@PathVariable Long id, @RequestBody Doctor doctor){
+        String currentAdmin = SecurityContextHolder.getContext().getAuthentication().getName();
+        try {
+            doctorService.updateDoctorFully(id, doctor, currentAdmin);
+            return ResponseEntity.ok(Map.of("message", "Doctor updated successfully"));
+        } catch (RuntimeException e){
+            return ResponseEntity.status(404).body(Map.of("error", e.getMessage()));
         }
-
-        Doctor doctor = doctorOpt.get();
-
-        boolean templateChanged = updatedDoctor.getTimetableTemplate() != null &&
-                updatedDoctor.getTimetableTemplate() != doctor.getTimetableTemplate();
-
-        doctor.getUser().setFirstName(updatedDoctor.getUser().getFirstName());
-        doctor.getUser().setLastName(updatedDoctor.getUser().getLastName());
-        doctor.getUser().setPhone(updatedDoctor.getUser().getPhone());
-
-        if (updatedDoctor.getUser().getPassword() != null &&
-                !updatedDoctor.getUser().getPassword().isBlank()) {
-
-            doctor.getUser().setPassword(
-                    passwordEncoder.encode(updatedDoctor.getUser().getPassword())
-            );
-        }
-
-        if (updatedDoctor.getDepartment() != null) {
-            var deptOpt = departmentRepo.findById(updatedDoctor.getDepartment().getId());
-            doctor.setDepartment(deptOpt.orElse(null));
-        } else {
-            doctor.setDepartment(null);
-        }
-
-        if (updatedDoctor.getTimetableTemplate() != null) {
-            doctor.setTimetableTemplate(updatedDoctor.getTimetableTemplate());
-        }
-
-
-        userRepo.save(doctor.getUser());
-        doctorRepo.save(doctor);
-
-        if (templateChanged) {
-            scheduleRepo.deleteAllByDoctor(doctor);
-            List<DoctorSchedule> newSlots = scheduleGenerator.generate90Days(doctor);
-            scheduleRepo.saveAll(newSlots);
-        }
-
-        return ResponseEntity.ok(doctor);
     }
 
     @GetMapping("/timetable-templates")

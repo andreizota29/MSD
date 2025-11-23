@@ -100,9 +100,10 @@
         </div>
 
         <div class="form-row">
-          <button type="submit" class="btn-primary" style="flex:1">
-            {{ editingDoctor ? 'Update Doctor' : 'Create Doctor' }}
-          </button>
+          <button type="submit" class="btn-primary" style="flex:1" 
+          [disabled]="editingDoctor ? editDoctorForm.invalid : addDoctorForm.invalid">
+    {{ editingDoctor ? 'Update Doctor' : 'Create Doctor' }}
+  </button>
           <button type="button" *ngIf="editingDoctor" (click)="closeEdit()" style="background:#eee; color: #333;">
             Cancel
           </button>

@@ -39,7 +39,7 @@ export class AdminDashboard implements OnInit {
     password: new FormControl('', Validators.required),
     title: new FormControl('', Validators.required),
     departmentId: new FormControl('', Validators.required),
-    timetableTemplate: new FormControl('WEEKDAY_9_18', Validators.required)
+    timetableTemplate: new FormControl('', Validators.required)
   });
 
   editingDoctor: any = null;
@@ -47,10 +47,12 @@ export class AdminDashboard implements OnInit {
   editDoctorForm = new FormGroup({
     firstName: new FormControl('', Validators.required),
     lastName: new FormControl('', Validators.required),
+    email: new FormControl('', [Validators.required, Validators.email]),
     phone: new FormControl('', Validators.required),
-    departmentId: new FormControl(''),
+    title: new FormControl('', Validators.required),
+    departmentId: new FormControl('', Validators.required), 
     timetableTemplate: new FormControl('', Validators.required),
-    password: new FormControl('')
+    password: new FormControl('') 
   });
 
   constructor(private http: HttpClient, private router: Router, private alert: Alert) { }
@@ -298,7 +300,9 @@ export class AdminDashboard implements OnInit {
     this.editDoctorForm.patchValue({
       firstName: doc.user.firstName,
       lastName: doc.user.lastName,
+      email: doc.user.email,
       phone: doc.user.phone,
+      title: doc.title,
       departmentId: doc.department?.id || '',
       timetableTemplate: doc.timetableTemplate,
       password: ''
@@ -316,23 +320,43 @@ export class AdminDashboard implements OnInit {
         firstName: this.editDoctorForm.value.firstName,
         lastName: this.editDoctorForm.value.lastName,
         phone: this.editDoctorForm.value.phone,
+        email: this.editDoctorForm.value.email,
         password: this.editDoctorForm.value.password || null
       },
+      title: this.editDoctorForm.value.title,
       department: this.editDoctorForm.value.departmentId
         ? { id: this.editDoctorForm.value.departmentId }
         : null,
       timetableTemplate: this.editDoctorForm.value.timetableTemplate
     };
 
+    console.log('Payload to send:', payload);
+
+    if (!payload.user.firstName || !payload.user.lastName || !payload.user.email || !payload.user.phone ||
+       !payload.title) {
+      this.alert.error('Please fill all required fields');
+      return;
+    }
+
     this.http.put(`http://localhost:5050/admin/doctors/${id}`, payload, { headers })
       .subscribe({
         next: () => {
+          this.alert.success('Doctor updated successfully');
           this.closeEdit();
           this.loadData();
         },
         error: (err) => {
-          console.error(err);
-          this.alert.error('Error updating the doctor');
+          console.error('Error adding doctor:', err);
+          let msg = 'Failed to add doctor.';
+          
+          if (err.error) {
+             if (err.error.error) {
+                msg = err.error.error; 
+             } else {
+                msg = Object.values(err.error).join('\n');
+             }
+          }
+          this.alert.error(msg);
         }
       });
   }
