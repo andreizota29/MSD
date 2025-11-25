@@ -1,9 +1,9 @@
 <div class="auth-container" style="flex-direction: column; gap: 20px;">
-  
   <div style="text-align: center; color: #333; margin-top: 30px;">
     <h1 style="margin: 0; font-size: 2rem; font-weight: 700;">Welcome to MediConnect</h1>
     <p style="margin: 5px 0 0 0; color: #666;">Your Health, Connected.</p>
   </div>
+  
   <div class="card auth-card">
     <div class="card-header" style="justify-content: center;">
       <h3>Login</h3>
@@ -20,6 +20,7 @@
             <label>Password</label>
             <input type="password" formControlName="password" placeholder="******">
           </div>
+
           <button type="submit" class="btn-primary" [disabled]="loginForm.invalid">Sign In</button>
 
           <div style="display: flex; justify-content: space-between; font-size: 0.85rem; margin-top: 10px;">

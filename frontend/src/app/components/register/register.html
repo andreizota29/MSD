@@ -1,58 +1,55 @@
 <div class="auth-container">
-    <div class="card auth-card">
-        <div class="card-header" style="justify-content: center;">
-            <h3>Create Account</h3>
-        </div>
-
-
-
-        <div style="padding: 2rem;">
-            <div *ngIf="errorMessage"
-                style="background: #ffebee; color: #d32f2f; padding: 10px; border-radius: 6px; margin-bottom: 15px; font-size: 0.9rem; white-space: pre-line;">
-                <span class="material-icons"
-                    style="vertical-align: middle; font-size: 18px; margin-right: 5px;">error</span>
-                {{ errorMessage }}
-            </div>
-            <form [formGroup]="register" (ngSubmit)="handleSubmit()"
-                style="display: flex; flex-direction: column; gap: 15px;">
-
-                <div class="form-row">
-                    <div>
-                        <label>First Name</label>
-                        <input type="text" formControlName="firstName" placeholder="John">
-                    </div>
-                    <div>
-                        <label>Last Name</label>
-                        <input type="text" formControlName="lastName" placeholder="Doe">
-                    </div>
-                </div>
-
-                <div>
-                    <label>Phone Number</label>
-                    <input type="tel" formControlName="phone" placeholder="0712...">
-                </div>
-
-                <div>
-                    <label>Email</label>
-                    <input type="email" formControlName="email" placeholder="email@example.com">
-                </div>
-
-                <div>
-                    <label>Password</label>
-                    <input type="password" formControlName="password" placeholder="******">
-                </div>
-
-                <button type="submit" class="btn-primary" [disabled]="register.invalid" style="margin-top: 10px;">
-                    Register
-                </button>
-
-                <div style="text-align: center; margin-top: 15px;">
-                    <a routerLink="/login" style="color: #666; font-size: 0.9rem; text-decoration: none;">
-                        Already have an account? <span style="color: #333; font-weight: 600;">Log In</span>
-                    </a>
-                </div>
-
-            </form>
-        </div>
+  <div class="card auth-card">
+    <div class="card-header" style="justify-content: center;">
+      <h3>Create Account</h3>
     </div>
+    
+    <div style="padding: 2rem;">
+      
+      <div *ngIf="errorMessage" style="background: #ffebee; color: #d32f2f; padding: 10px; border-radius: 6px; margin-bottom: 15px; font-size: 0.9rem; white-space: pre-line;">
+        <span class="material-icons" style="vertical-align: middle; font-size: 18px; margin-right: 5px;">error</span>
+        {{ errorMessage }}
+      </div>
+
+      <form [formGroup]="register" (ngSubmit)="handleSubmit()" style="display: flex; flex-direction: column; gap: 15px;">
+        
+        <div class="form-row">
+          <div>
+            <label>First Name</label>
+            <input type="text" formControlName="firstName" placeholder="John">
+          </div>
+          <div>
+            <label>Last Name</label>
+            <input type="text" formControlName="lastName" placeholder="Doe">
+          </div>
+        </div>
+
+        <div>
+          <label>Phone Number</label>
+          <input type="tel" formControlName="phone" placeholder="0712...">
+        </div>
+
+        <div>
+          <label>Email</label>
+          <input type="email" formControlName="email" placeholder="email@example.com">
+        </div>
+
+        <div>
+          <label>Password</label>
+          <input type="password" formControlName="password" placeholder="******">
+        </div>
+
+        <button type="submit" class="btn-primary" [disabled]="register.invalid" style="margin-top: 10px;">
+          Register
+        </button>
+
+        <div style="text-align: center; margin-top: 15px;">
+          <a routerLink="/login" style="color: #666; font-size: 0.9rem; text-decoration: none;">
+            Already have an account? <span style="color: #333; font-weight: 600;">Log In</span>
+          </a>
+        </div>
+
+      </form>
+    </div>
+  </div>
 </div>

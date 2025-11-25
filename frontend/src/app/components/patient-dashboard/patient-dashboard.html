@@ -1,10 +1,10 @@
 <div class="liquid-container patient-layout">
-
+  
   <div class="card">
     <div class="card-header">
       <h3><span class="material-icons">filter_alt</span> Selection</h3>
     </div>
-
+    
     <div class="card-controls">
       <label>Department</label>
       <select [(ngModel)]="selectedDepartmentId" (change)="onDepartmentChange()" style="margin-bottom: 10px;">
@@ -16,94 +16,85 @@
       <select [(ngModel)]="selectedServiceId" (change)="loadSlots()" [disabled]="!selectedDepartmentId">
         <option [ngValue]="null">-- Select Service --</option>
         <option *ngFor="let s of services" [ngValue]="s.id">
-          {{s.name}} - {{s.price}} RON
+           {{s.name}} - {{s.price}} RON
         </option>
       </select>
     </div>
 
     <div class="card-body-scroll" style="background: #fafafa; padding: 1rem;">
-      <button class="btn-primary" style="width: 100%; margin-bottom: 1rem;" (click)="toggleAppointments()">
-        {{ showAppointments ? 'Hide My Appointments' : 'View My Appointments' }}
-      </button>
+       <button class="btn-primary" style="width: 100%; margin-bottom: 1rem;" (click)="toggleAppointments()">
+         {{ showAppointments ? 'Hide My Appointments' : 'View My Appointments' }}
+       </button>
 
-      <div *ngIf="showAppointments" class="appointment-list-wrapper">
-        <h4 style="margin-top:0; border-bottom:1px solid #ddd; padding-bottom:5px;">My Appointments</h4>
+       <div *ngIf="showAppointments" class="appointment-list-wrapper">
+         <h4 style="margin-top:0; border-bottom:1px solid #ddd; padding-bottom:5px;">Upcoming Appointments</h4>
+         
+         <div *ngIf="appointments.length === 0" style="text-align:center; color:#999; font-size:0.9rem;">
+            No upcoming appointments.
+         </div>
 
-        <div *ngIf="appointments.length === 0" style="text-align:center; color:#999; font-size:0.9rem; padding:10px;">
-          No appointments found.
-        </div>
-
-        <div *ngFor="let a of appointments" class="card"
-          style="margin-bottom:10px; padding:10px; border:1px solid #ddd; box-shadow:none;">
-          <div style="font-weight:600; font-size:0.9rem">{{a.service.name}}</div>
-
-          <div style="font-size:0.8rem; color:#666">
-            {{a.doctorSchedule.date}} @ {{a.doctorSchedule.startTime}}
-          </div>
-
-          <div style="font-size:0.8rem; margin-top:4px; color: #333;">
-            Dr. {{a.doctor.user.lastName}}
-          </div>
-
-          <button *ngIf="a.status === 'SCHEDULED'" (click)="cancelAppointment(a.id)"
-            style="margin-top:8px; font-size:0.75rem; padding: 6px; width:100%;" class="btn-danger">
-            Cancel Appointment
-          </button>
-
-          <div *ngIf="a.status !== 'SCHEDULED'" style="font-size:0.8rem; margin-top:5px; color:#666;">
-            Status: {{a.status}}
-          </div>
-        </div>
-      </div>
+         <div *ngFor="let a of appointments" class="card" style="margin-bottom:10px; padding:10px; border:1px solid #ddd; box-shadow:none;">
+             <div style="font-weight:600; font-size:0.9rem">{{a.service.name}}</div>
+             <div style="font-size:0.8rem; color:#666">{{a.doctorSchedule.date}} @ {{a.doctorSchedule.startTime}}</div>
+             <div style="font-size:0.8rem; margin-top:4px; color:#333;">Dr. {{a.doctor.user.lastName}}</div>
+             
+             <button *ngIf="a.status === 'SCHEDULED'" (click)="cancelAppointment(a.id)" 
+                     style="margin-top:8px; font-size:0.75rem; padding: 6px; width:100%;" class="btn-danger">
+               Cancel
+             </button>
+         </div>
+       </div>
     </div>
   </div>
 
   <div class="card">
-
     <div class="day-nav" *ngIf="selectedServiceId">
-      <button class="btn-icon" (click)="prevDay()"><span class="material-icons">chevron_left</span></button>
-      <div class="current-date"><span class="material-icons" style="vertical-align:middle; font-size:18px">event</span>
-        {{ formattedDate }}</div>
-      <button class="btn-icon" (click)="nextDay()"><span class="material-icons">chevron_right</span></button>
+       <button class="btn-icon" (click)="prevDay()"><span class="material-icons">chevron_left</span></button>
+       <div class="current-date">
+          <span class="material-icons" style="vertical-align:middle; font-size:18px">event</span> {{ formattedDate }}
+       </div>
+       <button class="btn-icon" (click)="nextDay()"><span class="material-icons">chevron_right</span></button>
     </div>
-
+    
     <div class="card-body-scroll" *ngIf="selectedServiceId; else noService">
+       <div *ngIf="groupedSlots.length === 0" style="padding: 2rem; text-align: center; color: #999;">
+          No slots available for this date.
+       </div>
 
-      <div *ngIf="groupedSlots.length === 0" style="padding: 2rem; text-align: center; color: #999;">
-        No slots available for this date. Try the next day.
-      </div>
-
-      <div *ngFor="let group of groupedSlots" class="doctor-card">
-        <div style="display: flex; align-items: center; gap: 8px;">
-          <span class="material-icons">person</span>
-          <span>Dr. {{ group.doctor.user.firstName }} {{ group.doctor.user.lastName }}</span>
-        </div>
-        <div style="font-size: 0.85rem; color: #666; margin-left: 32px;">
-          {{ group.doctor.title }} • {{ group.doctor.user.phone }}
-        </div>
-
-        <div class="slot-grid">
-          <div *ngFor="let slot of group.slots" class="slot-btn" [class.selected]="selectedSlotId === slot.id"
-            (click)="selectSlot(slot.id)">
-            {{ slot.startTime.substring(0,5) }}
+       <div *ngFor="let group of groupedSlots" class="doctor-card">
+          <div class="doctor-header" style="flex-direction: column; align-items: flex-start; gap: 2px;">
+             <div style="display: flex; align-items: center; gap: 8px;">
+                <span class="material-icons">person</span>
+                <span>Dr. {{ group.doctor.user.firstName }} {{ group.doctor.user.lastName }}</span>
+             </div>
+             <div style="font-size: 0.85rem; color: #666; margin-left: 32px;">
+                {{ group.doctor.title }} • {{ group.doctor.user.phone }}
+             </div>
           </div>
-        </div>
-      </div>
+          
+          <div class="slot-grid">
+             <div *ngFor="let slot of group.slots" 
+                  class="slot-btn"
+                  [class.selected]="selectedSlotId === slot.id"
+                  (click)="selectSlot(slot.id)"
+                  style="min-width: 90px;">
+                {{ slot.startTime.substring(0,5) }}
+             </div>
+          </div>
+       </div>
     </div>
 
     <div style="padding: 1rem; border-top: 1px solid #eee; text-align: right;" *ngIf="selectedServiceId">
-      <button class="btn-primary" (click)="confirmAppointment()" [disabled]="!selectedSlotId">
-        Confirm Booking
-      </button>
+       <button class="btn-primary" (click)="confirmAppointment()" [disabled]="!selectedSlotId">
+         Confirm Booking
+       </button>
     </div>
 
     <ng-template #noService>
-      <div
-        style="display: flex; justify-content:center; align-items:center; height: 100%; color: #aaa; flex-direction: column;">
+      <div style="display: flex; justify-content:center; align-items:center; height: 100%; color: #aaa; flex-direction: column;">
         <span class="material-icons" style="font-size: 48px;">touch_app</span>
         <p>Select a Service to view availability</p>
       </div>
     </ng-template>
   </div>
-
 </div>

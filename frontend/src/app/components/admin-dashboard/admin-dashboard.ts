@@ -5,6 +5,7 @@ import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } 
 import { Router } from '@angular/router';
 import { Alert } from '../../services/alert';
 
+
 @Component({
   selector: 'app-admin-dashboard',
   standalone: true,
@@ -20,6 +21,7 @@ export class AdminDashboard implements OnInit {
   timetableTemplates: string[] = [];
   filteredServices: any[] = [];
   selectedDepartmentId: number | null = null;
+  editingDoctor: any = null;
 
   addDepartmentForm = new FormGroup({
     name: new FormControl('', Validators.required)
@@ -28,7 +30,7 @@ export class AdminDashboard implements OnInit {
   addServiceForm = new FormGroup({
     departmentId: new FormControl('', Validators.required),
     name: new FormControl('', Validators.required),
-    price: new FormControl('', Validators.required)
+    price: new FormControl('', [Validators.required, Validators.min(0)])
   });
 
   addDoctorForm = new FormGroup({
@@ -39,10 +41,8 @@ export class AdminDashboard implements OnInit {
     password: new FormControl('', Validators.required),
     title: new FormControl('', Validators.required),
     departmentId: new FormControl('', Validators.required),
-    timetableTemplate: new FormControl('', Validators.required)
+    timetableTemplate: new FormControl('WEEKDAY_9_18', Validators.required)
   });
-
-  editingDoctor: any = null;
 
   editDoctorForm = new FormGroup({
     firstName: new FormControl('', Validators.required),
@@ -50,184 +50,116 @@ export class AdminDashboard implements OnInit {
     email: new FormControl('', [Validators.required, Validators.email]),
     phone: new FormControl('', Validators.required),
     title: new FormControl('', Validators.required),
-    departmentId: new FormControl('', Validators.required), 
+    departmentId: new FormControl('', Validators.required),
     timetableTemplate: new FormControl('', Validators.required),
-    password: new FormControl('') 
+    password: new FormControl('')
   });
 
   constructor(private http: HttpClient, private router: Router, private alert: Alert) { }
 
   ngOnInit() {
     this.loadData();
-    this.addDoctorForm.valueChanges.subscribe(val => {
-      console.log('Doctor form values changed:', val);
-    });
-
-    this.editDoctorForm.valueChanges.subscribe(val => {
-      console.log('Edit doctor form values changed:', val);
-    });
-    const headers = this.getAuthHeaders();
-
-    this.http.get<string[]>('http://localhost:5050/admin/timetable-templates', { headers })
-      .subscribe({
-        next: (res) => {
-          this.timetableTemplates = res;
-          if (!this.addDoctorForm.value.timetableTemplate) {
-            this.addDoctorForm.patchValue({ timetableTemplate: res[0] });
-          }
-        },
-        error: (err) => console.error(err)
-      });
-  }
-
-  private updateFilteredServices() {
-    if (this.selectedDepartmentId) {
-      this.filteredServices = this.services.filter(
-        s => s.department?.id === this.selectedDepartmentId
-      );
-    } else {
-      this.filteredServices = [];
-    }
-  }
-
-
-
-  onDepartmentChange() {
-    const deptId = this.addServiceForm.value.departmentId;
-    this.selectedDepartmentId = deptId ? +deptId : null;
-    this.updateFilteredServices();
+    this.loadTemplates();
   }
 
   private getAuthHeaders(): HttpHeaders {
     const token = localStorage.getItem('token');
-    console.log(token);
     return new HttpHeaders({ 'Authorization': `Bearer ${token}` });
   }
 
+  loadTemplates() {
+    this.http.get<string[]>('http://localhost:5050/admin/timetable-templates', { headers: this.getAuthHeaders() })
+      .subscribe({
+        next: (res) => {
+          this.timetableTemplates = res;
+          if (!this.addDoctorForm.value.timetableTemplate && res.length > 0) {
+            this.addDoctorForm.patchValue({ timetableTemplate: res[0] });
+          }
+        }
+      });
+  }
 
   loadData() {
     const headers = this.getAuthHeaders();
 
     this.http.get<any[]>('http://localhost:5050/admin/departments', { headers })
-      .subscribe({ next: res => this.departments = res, error: err => console.log(err) });
+      .subscribe({ next: res => this.departments = res });
 
     this.http.get<any[]>('http://localhost:5050/admin/services', { headers })
-      .subscribe({ next: res => { this.services = res; this.updateFilteredServices(); }, error: err => console.error(err) });
+      .subscribe({ 
+        next: res => { 
+          this.services = res; 
+          this.updateFilteredServices(); 
+        }
+      });
 
     this.http.get<any[]>('http://localhost:5050/admin/doctors', { headers })
-      .subscribe({
-        next: res => {
-          console.log('Doctors from backend:', res);
-          this.doctors = res;
-        },
-        error: err => console.error(err)
-      });
+      .subscribe({ next: res => this.doctors = res });
   }
 
   addDepartment() {
-    const headers = this.getAuthHeaders();
-    this.http.post('http://localhost:5050/admin/departments', this.addDepartmentForm.value, { headers })
+    this.http.post('http://localhost:5050/admin/departments', this.addDepartmentForm.value, { headers: this.getAuthHeaders() })
       .subscribe({
         next: () => {
           this.addDepartmentForm.reset();
           this.loadData();
+          this.alert.success('Department added');
         },
-        error: (err) => console.log(err)
+        error: (err) => this.handleError(err)
       });
   }
 
   deleteDepartment(id: number) {
-    const headers = this.getAuthHeaders();
-    this.http.delete(`http://localhost:5050/admin/departments/${id}`, { headers })
+    if(!confirm('Delete department?')) return;
+    this.http.delete(`http://localhost:5050/admin/departments/${id}`, { headers: this.getAuthHeaders() })
       .subscribe({
         next: () => {
-          this.departments = this.departments.filter(d => d.id !== id);
-          this.services = this.services.filter(s => s.department?.id !== id);
-          if (this.selectedDepartmentId === id) {
-            this.selectedDepartmentId = null;
-            this.filteredServices = [];
-          }
-          this.loadData(); 
-          this.alert.success('Department deleted successfully');
+          this.loadData();
+          this.alert.success('Department deleted');
         },
-        error: (err) => {
-          if (err.status === 404) {
-            this.alert.error('Department not found or already deleted');
-          } else {
-            console.error(err);
-          }
-        }
-      });
-  }
-
-    deleteService(id: number) {
-    const headers = this.getAuthHeaders();
-    this.http.delete(`http://localhost:5050/admin/services/${id}`, { headers })
-      .subscribe({
-        next: () => {
-        this.services = this.services.filter(s => s.id !== id);
-        this.updateFilteredServices();
-        this.alert.success('Service deleted succesfully');
-      },
-      error: (err) => {
-        this.alert.error('Service not found or already deleted');
-      }
-
+        error: (err) => this.handleError(err)
       });
   }
 
   addService() {
-    const headers = this.getAuthHeaders();
-
-    const dept = this.departments.find(d => d.id == this.addServiceForm.value.departmentId);
-    if (!dept) {
-      this.alert.error('Department not found!');
-      return;
-    }
-
-    const price = Number(this.addServiceForm.value.price);
-    if (isNaN(price) || price <= 0) {
-      this.alert.error('Price must be a positive number');
-      return;
-    }
+    const deptId = this.addServiceForm.value.departmentId;
+    const dept = this.departments.find(d => d.id == deptId);
+    
+    if (!dept) return this.alert.error('Invalid Department');
 
     const payload = {
-      name: this.addServiceForm.value.name ?? '',
-      price: price,
+      name: this.addServiceForm.value.name,
+      price: this.addServiceForm.value.price,
       department: { id: dept.id }
     };
 
-    this.http.post<any>('http://localhost:5050/admin/services', payload, { headers })
+    this.http.post('http://localhost:5050/admin/services', payload, { headers: this.getAuthHeaders() })
       .subscribe({
-        next: (service) => {
-          service.department = dept;
-          this.services.push(service);
-          this.updateFilteredServices();
+        next: () => {
           this.addServiceForm.reset();
+          this.loadData();
+          this.alert.success('Service added');
         },
-        error: (err) => {
-          console.error('Error adding service:', err);
-          this.alert.error('Error adding service');
-        }
+        error: (err) => this.handleError(err)
+      });
+  }
 
+  deleteService(id: number) {
+    if(!confirm('Delete service?')) return;
+    this.http.delete(`http://localhost:5050/admin/services/${id}`, { headers: this.getAuthHeaders() })
+      .subscribe({
+        next: () => {
+          this.services = this.services.filter(s => s.id !== id);
+          this.updateFilteredServices();
+          this.alert.success('Service deleted');
+        },
+        error: (err) => this.handleError(err)
       });
   }
 
   addDoctor() {
-    const headers = this.getAuthHeaders();
     const deptId = Number(this.addDoctorForm.value.departmentId);
-    const dept = this.departments.find(d => d.id === deptId);
-
-    if (!dept) {
-      console.error('Department not found for ID', deptId);
-      this.alert.error('Select a valid department!');
-      return;
-    }
-
-    if (!dept) {
-      this.alert.error('Please select a valid department');
-      return;
-    }
+    if (!deptId) return this.alert.error('Select a department');
 
     const payload = {
       user: {
@@ -238,65 +170,64 @@ export class AdminDashboard implements OnInit {
         password: this.addDoctorForm.value.password?.trim()
       },
       title: this.addDoctorForm.value.title?.trim(),
-      department: { id: Number(this.addDoctorForm.value.departmentId) },
+      department: { id: deptId },
       timetableTemplate: this.addDoctorForm.value.timetableTemplate
     };
 
-    console.log('Payload to send:', payload);
-
-    if (!payload.user.firstName || !payload.user.lastName || !payload.user.email ||
-      !payload.user.password || !payload.title) {
-      this.alert.error('Please fill all required fields');
-      return;
-    }
-    console.log('Payload to send:', payload);
-    this.http.post('http://localhost:5050/admin/doctors', payload, { headers })
+    this.http.post('http://localhost:5050/admin/doctors', payload, { headers: this.getAuthHeaders() })
       .subscribe({
         next: () => {
-          this.alert.success('Doctor added successfully');
+          this.alert.success('Doctor created');
           this.addDoctorForm.reset();
-          if(this.timetableTemplates.length > 0) {
-             this.addDoctorForm.patchValue({ timetableTemplate: this.timetableTemplates[0] });
-          }
+          this.loadData();
+          this.loadTemplates(); 
+        },
+        error: (err) => this.handleError(err)
+      });
+  }
+
+  updateDoctor() {
+    if (!this.editingDoctor) return;
+    const id = this.editingDoctor.id;
+
+    const payload = {
+      user: {
+        firstName: this.editDoctorForm.value.firstName,
+        lastName: this.editDoctorForm.value.lastName,
+        email: this.editDoctorForm.value.email,
+        phone: this.editDoctorForm.value.phone,
+        password: this.editDoctorForm.value.password || null
+      },
+      title: this.editDoctorForm.value.title,
+      department: this.editDoctorForm.value.departmentId ? { id: this.editDoctorForm.value.departmentId } : null,
+      timetableTemplate: this.editDoctorForm.value.timetableTemplate
+    };
+
+    this.http.put(`http://localhost:5050/admin/doctors/${id}`, payload, { headers: this.getAuthHeaders() })
+      .subscribe({
+        next: () => {
+          this.alert.success('Doctor updated');
+          this.closeEdit();
           this.loadData();
         },
-        error: (err) => {
-          console.error('Error adding doctor:', err);
-          let msg = 'Failed to add doctor.';
-          
-          if (err.error) {
-             if (err.error.error) {
-                msg = err.error.error; 
-             } else {
-                msg = Object.values(err.error).join('\n');
-             }
-          }
-          this.alert.error(msg);
-        }
+        error: (err) => this.handleError(err)
       });
   }
 
   deleteDoctor(id: number) {
-    if(!id) {
-       console.error("Error: Doctor ID is missing/undefined!");
-       return;
-    }
-
-    this.alert.confirm('This will permanently delete the doctor and their user account.', () => {
-      const headers = this.getAuthHeaders();
-      this.http.delete(`http://localhost:5050/admin/doctors/${id}`, { headers }).subscribe({
+    if(!confirm('Delete doctor? This cannot be undone.')) return;
+    this.http.delete(`http://localhost:5050/admin/doctors/${id}`, { headers: this.getAuthHeaders() })
+      .subscribe({
         next: () => {
           this.doctors = this.doctors.filter(d => d.id !== id);
-          this.alert.success('Doctor deleted successfully');
+          this.alert.success('Doctor deleted');
         },
-        error: (err) => this.alert.error('Failed to delete doctor')
+        error: (err) => this.handleError(err)
       });
-  });
   }
 
   editDoctor(doc: any) {
     this.editingDoctor = doc;
-
     this.editDoctorForm.patchValue({
       firstName: doc.user.firstName,
       lastName: doc.user.lastName,
@@ -309,66 +240,44 @@ export class AdminDashboard implements OnInit {
     });
   }
 
-  updateDoctor() {
-    if (!this.editingDoctor) return;
-
-    const headers = this.getAuthHeaders();
-    const id = this.editingDoctor.id;
-
-    const payload = {
-      user: {
-        firstName: this.editDoctorForm.value.firstName,
-        lastName: this.editDoctorForm.value.lastName,
-        phone: this.editDoctorForm.value.phone,
-        email: this.editDoctorForm.value.email,
-        password: this.editDoctorForm.value.password || null
-      },
-      title: this.editDoctorForm.value.title,
-      department: this.editDoctorForm.value.departmentId
-        ? { id: this.editDoctorForm.value.departmentId }
-        : null,
-      timetableTemplate: this.editDoctorForm.value.timetableTemplate
-    };
-
-    console.log('Payload to send:', payload);
-
-    if (!payload.user.firstName || !payload.user.lastName || !payload.user.email || !payload.user.phone ||
-       !payload.title) {
-      this.alert.error('Please fill all required fields');
-      return;
-    }
-
-    this.http.put(`http://localhost:5050/admin/doctors/${id}`, payload, { headers })
-      .subscribe({
-        next: () => {
-          this.alert.success('Doctor updated successfully');
-          this.closeEdit();
-          this.loadData();
-        },
-        error: (err) => {
-          console.error('Error adding doctor:', err);
-          let msg = 'Failed to add doctor.';
-          
-          if (err.error) {
-             if (err.error.error) {
-                msg = err.error.error; 
-             } else {
-                msg = Object.values(err.error).join('\n');
-             }
-          }
-          this.alert.error(msg);
-        }
-      });
-  }
-
   closeEdit() {
     this.editingDoctor = null;
     this.editDoctorForm.reset();
+  }
+
+  onDepartmentChange() {
+    const deptId = this.addServiceForm.value.departmentId;
+    this.selectedDepartmentId = deptId ? +deptId : null;
+    this.updateFilteredServices();
+  }
+
+  private updateFilteredServices() {
+    if (this.selectedDepartmentId) {
+      this.filteredServices = this.services.filter(s => s.department?.id === this.selectedDepartmentId);
+    } else {
+      this.filteredServices = [];
+    }
+  }
+
+  private handleError(err: any) {
+    console.error(err);
+    let msg = 'Operation failed';
+    if (err.error) {
+      if (typeof err.error === 'object') {
+        if(err.error.error) {
+            msg = err.error.error; 
+        } else {
+            msg = Object.values(err.error).join('\n'); 
+        }
+      } else if (typeof err.error === 'string') {
+        msg = err.error;
+      }
+    }
+    this.alert.error(msg);
   }
 
   logout() {
     localStorage.clear();
     this.router.navigate(['/login']);
   }
-
 }

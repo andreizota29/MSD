@@ -33,36 +33,47 @@ export class DoctorDashboard implements OnInit {
     this.loadWeek();
   }
 
-  goToChangePassword() {
-  this.router.navigate(['/change-password']);
-}
-
   initWeek() {
     const today = new Date();
     const day = today.getDay();
-    const mondayOffset = (day + 6) % 7;
+    const mondayOffset = (day + 6) % 7; 
+    
     this.weekStart = new Date(today);
-    this.weekStart.setHours(0, 0, 0, 0);
     this.weekStart.setDate(today.getDate() - mondayOffset);
+    this.weekStart.setHours(0, 0, 0, 0);
   }
 
   changeWeek(offset: number) {
     if (offset < 0 && !this.canGoBack) return;
-    const newDate = new Date(this.weekStart);
 
+    const newDate = new Date(this.weekStart);
     newDate.setDate(newDate.getDate() + (offset * 7));
     
     this.weekStart = newDate;
     this.loadWeek();
   }
+  private getIsoDateString(date: Date): string {
+    const year = date.getFullYear();
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const day = date.getDate().toString().padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+
+  formatDate(d: Date): string {
+    return this.getIsoDateString(d);
+  }
 
   loadWeek() {
     const headers = this.getAuthHeaders();
-    const dateStr = this.formatDate(this.weekStart);
+    const dateStr = this.getIsoDateString(this.weekStart);
+
+    console.log('Loading week starting:', dateStr);
+
     this.http.get<any[]>(`http://localhost:5050/doctor/timetable/week?start=${dateStr}`, { headers })
       .subscribe({
         next: res => {
           this.weekSlots = res ?? [];
+          console.log(`Loaded ${this.weekSlots.length} slots`);
           this.prepareViewData();
         },
         error: err => {
@@ -81,13 +92,12 @@ export class DoctorDashboard implements OnInit {
     for (const s of this.weekSlots) {
       const date = s.date;
       const start = this.normalizeTimeString(s.startTime);
-      const end = this.normalizeTimeString(s.endTime);
+      
+      if (!this.slotsByDateTime.has(date)) {
+          this.slotsByDateTime.set(date, new Map());
+      }
 
-      if (!this.slotsByDateTime.has(date)) this.slotsByDateTime.set(date, new Map());
-      s._start = start;
-      s._end = end;
       this.slotsByDateTime.get(date)!.set(start, s);
-
       timeSet.add(start);
     }
 
@@ -96,6 +106,7 @@ export class DoctorDashboard implements OnInit {
       const sorted = Array.from(timeSet).sort();
       let cur = sorted[0];
       const last = sorted[sorted.length - 1];
+      
       while (cur <= last) {
         allTimes.push(cur);
         cur = this.addMinutes(cur, 30);
@@ -103,31 +114,33 @@ export class DoctorDashboard implements OnInit {
     }
     this.times = allTimes;
 
-    const today = new Date();
     const workingDays = this.getDoctorWorkingDays();
-
+    
     for (let i = 0; i < 7; i++) {
       const d = this.getWeekDate(i);
-      const ds = this.formatDate(d);
+      const ds = this.getIsoDateString(d);
 
-      if (!this.slotsByDateTime.has(ds)) this.slotsByDateTime.set(ds, new Map());
+      if (!this.slotsByDateTime.has(ds)) {
+          this.slotsByDateTime.set(ds, new Map());
+      }
 
       const dayName = this.weekDays[i];
-      if (workingDays.includes(dayName) && d >= today) {
+      
+      if (workingDays.includes(dayName)) {
         const map = this.slotsByDateTime.get(ds)!;
         for (const t of allTimes) {
-          if (!map.has(t)) map.set(t, null);
+          if (!map.has(t)) {
+              map.set(t, null);
+          }
         }
       }
     }
   }
 
-  getDoctorWorkingDays(): string[] {
-    return ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
-  }
-
   getSlot(dayIndex: number, time: string) {
-    const dateStr = this.formatDate(this.getWeekDate(dayIndex));
+    const d = this.getWeekDate(dayIndex);
+    const dateStr = this.getIsoDateString(d);
+    
     const dayMap = this.slotsByDateTime.get(dateStr);
     return dayMap ? dayMap.get(time) ?? null : null;
   }
@@ -135,22 +148,18 @@ export class DoctorDashboard implements OnInit {
   getWeekDate(offset: number): Date {
     const d = new Date(this.weekStart);
     d.setDate(this.weekStart.getDate() + offset);
-    d.setHours(0, 0, 0, 0);
     return d;
   }
 
-  formatDate(d: Date): string {
-    return d.toLocaleDateString('en-CA');
+  getDoctorWorkingDays(): string[] {
+    return ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
   }
 
   normalizeTimeString(t: string | undefined | null): string {
     if (!t) return '';
-    const hhmm = t.split('T').pop()?.split('.')[0];
-    const parts = (hhmm ?? t).split(':');
+    const parts = t.split(':');
     if (parts.length >= 2) {
-      const hh = parts[0].padStart(2, '0');
-      const mm = parts[1].padStart(2, '0');
-      return `${hh}:${mm}`;
+      return `${parts[0]}:${parts[1]}`;
     }
     return t;
   }
@@ -158,7 +167,7 @@ export class DoctorDashboard implements OnInit {
   isPast(slot: any) {
     if (!slot) return false;
     const now = new Date();
-    const dt = new Date(`${slot.date}T${slot._end || this.normalizeTimeString(slot.endTime)}:00`);
+    const dt = new Date(`${slot.date}T${this.normalizeTimeString(slot.endTime)}:00`);
     return dt.getTime() < now.getTime();
   }
 
@@ -167,7 +176,6 @@ export class DoctorDashboard implements OnInit {
 
     if (slot.booked) {
       const details = this.getPatientAndService(slot);
-      
       if (this.isPast(slot)) {
         return `Completed – ${details}`; 
       }
@@ -186,9 +194,7 @@ export class DoctorDashboard implements OnInit {
     
     if (p.user) {
       name = `${p.user.firstName ?? ''} ${p.user.lastName ?? ''}`.trim();
-    } else {
-      name = `${p.firstName ?? ''} ${p.lastName ?? ''}`.trim();
-    }
+    } 
     const service = slot.serviceName ? ` (${slot.serviceName})` : '';
 
     return name + service;
@@ -200,14 +206,9 @@ export class DoctorDashboard implements OnInit {
 
   slotLabel(slot: any) {
     if (!slot) return '';
-    return `${slot._start} – ${slot._end}`;
-  }
-
-  slotPatientName(slot: any) {
-    if (!slot || !slot.patient) return '';
-    const p = slot.patient;
-    if (p.user) return `${p.user.firstName ?? ''} ${p.user.lastName ?? ''}`.trim();
-    return `${p.firstName ?? ''} ${p.lastName ?? ''}`.trim();
+    const start = this.normalizeTimeString(slot.startTime);
+    const end = this.normalizeTimeString(slot.endTime);
+    return `${start} – ${end}`;
   }
 
   addMinutes(time: string, minutes: number): string {

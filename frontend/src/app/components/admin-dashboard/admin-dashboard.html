@@ -8,7 +8,7 @@
     <div class="card-controls">
       <form [formGroup]="addDepartmentForm" (ngSubmit)="addDepartment()" class="add-row">
         <input placeholder="Name" formControlName="name">
-        <button class="btn-primary btn-icon" [disabled]="addDepartmentForm.invalid">
+        <button class="btn-primary btn-icon" [disabled]="addDepartmentForm.invalid" title="Add Department">
           <span class="material-icons">add</span>
         </button>
       </form>
@@ -17,7 +17,7 @@
     <div class="card-body-scroll">
       <div class="list-item" *ngFor="let d of departments">
         <span>{{d.name}}</span>
-        <button class="btn-danger btn-icon" (click)="deleteDepartment(d.id)">
+        <button class="btn-danger btn-icon" (click)="deleteDepartment(d.id)" title="Delete">
           <span class="material-icons">delete</span>
         </button>
       </div>
@@ -33,14 +33,14 @@
       <form [formGroup]="addServiceForm" (ngSubmit)="addService()">
         <div style="margin-bottom: 8px;">
           <select formControlName="departmentId" (change)="onDepartmentChange()" style="width:100%">
-            <option value="">Select Department</option>
+            <option value="">Select Dept</option>
             <option *ngFor="let d of departments" [value]="d.id">{{d.name}}</option>
           </select>
         </div>
         <div class="add-row">
           <input placeholder="Name" formControlName="name">
           <input placeholder="Price" type="number" formControlName="price" style="width: 70px; flex: none;">
-          <button class="btn-primary btn-icon" [disabled]="addServiceForm.invalid">
+          <button class="btn-primary btn-icon" [disabled]="addServiceForm.invalid" title="Add Service">
             <span class="material-icons">add</span>
           </button>
         </div>
@@ -48,6 +48,9 @@
     </div>
 
     <div class="card-body-scroll">
+      <div *ngIf="!selectedDepartmentId" style="padding: 1rem; text-align: center; color: #999; font-size: 0.9rem;">
+        Select a department above to view services
+      </div>
       <div class="list-item" *ngFor="let s of filteredServices">
         <div class="doc-item">
           <span class="doc-name">{{s.name}}</span>
@@ -56,9 +59,6 @@
         <button class="btn-danger btn-icon" (click)="deleteService(s.id)">
           <span class="material-icons">delete</span>
         </button>
-      </div>
-      <div *ngIf="filteredServices.length === 0" style="padding: 1rem; text-align: center; color: #999; font-size: 0.9rem;">
-        Select a department
       </div>
     </div>
   </div>
@@ -101,9 +101,10 @@
 
         <div class="form-row">
           <button type="submit" class="btn-primary" style="flex:1" 
-          [disabled]="editingDoctor ? editDoctorForm.invalid : addDoctorForm.invalid">
-    {{ editingDoctor ? 'Update Doctor' : 'Create Doctor' }}
-  </button>
+                  [disabled]="editingDoctor ? editDoctorForm.invalid : addDoctorForm.invalid">
+            {{ editingDoctor ? 'Update Doctor' : 'Create Doctor' }}
+          </button>
+          
           <button type="button" *ngIf="editingDoctor" (click)="closeEdit()" style="background:#eee; color: #333;">
             Cancel
           </button>

@@ -2,7 +2,7 @@ import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { Component } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Router, RouterLink, RouterModule } from "@angular/router";
+import { Router, RouterModule } from "@angular/router";
 import { Alert } from '../../services/alert';
 
 @Component({
@@ -13,24 +13,18 @@ import { Alert } from '../../services/alert';
   styleUrls: ['./login.css'],
 })
 export class Login {
-
   showForgotPassword = false;
-
-  public loginForm = new FormGroup({
+  loginForm = new FormGroup({
     email : new FormControl('',[Validators.required]),
     password: new FormControl('',[Validators.required])
   });
-
-   public forgotForm = new FormGroup({
+  forgotForm = new FormGroup({
     email: new FormControl('', [Validators.required, Validators.email])
   });
 
-  constructor(private httpClient: HttpClient,
-              private router: Router,
-              private alert: Alert
-  ) {}
+  constructor(private httpClient: HttpClient, private router: Router, private alert: Alert) {}
 
-public handleLogin() {
+  handleLogin() {
     this.httpClient.post<{ token: string}>(
       'http://localhost:5050/auth/login',
       this.loginForm.value
@@ -41,48 +35,31 @@ public handleLogin() {
         localStorage.setItem('role', payload.role);
         localStorage.setItem('email', payload.sub);
 
-        if(payload.role === 'ADMIN'){
-          this.router.navigate(['/admin-dashboard'])
-        }
-        else if(payload.role === 'DOCTOR'){
-          this.router.navigate(['/doctor-dashboard']);
-        }
-        else if (payload.role === 'PATIENT' && !payload.profileCompleted) {
-          this.router.navigate(['/complete-profile']);
-        } 
-        else {
-          this.router.navigate(['/patient-dashboard']);
-        }
+        if(payload.role === 'ADMIN') this.router.navigate(['/admin-dashboard']);
+        else if(payload.role === 'DOCTOR') this.router.navigate(['/doctor-dashboard']);
+        else if (payload.role === 'PATIENT' && !payload.profileCompleted) this.router.navigate(['/complete-profile']);
+        else this.router.navigate(['/patient-dashboard']);
       },
       error: (err) => {
-        console.log(err);
-        this.alert.error("Wrong credentials or role");
+        this.alert.error(err.error?.error || "Wrong credentials");
       }
     });
   }
 
-  public handleForgotPassword() {
-  if (this.forgotForm.invalid) return;
-
-  const email = this.forgotForm.value.email;
-  console.log("Forgot password requested for:", email);
-
-  this.httpClient.post('http://localhost:5050/auth/forgot-password', { email }, { responseType: 'text' })
-  .subscribe({
-    next: (res) => {
-      console.log("Forgot password request sent successfully:", res);
-      this.alert.success(`If this email exists in our system, a password reset link has been sent to ${email}`);
-      this.showForgotPassword = false;
-    },
-    error: (err) => {
-      console.error("Failed to send forgot password request", err);
-      this.alert.error("Failed to send reset email. Try again later.");
-    }
-  });
-}
-
-  public toggleForgotPassword() {
-    this.showForgotPassword = !this.showForgotPassword;
+  handleForgotPassword() {
+    if (this.forgotForm.invalid) return;
+    const email = this.forgotForm.value.email;
+    this.httpClient.post('http://localhost:5050/auth/forgot-password', { email }, { responseType: 'text' })
+    .subscribe({
+      next: () => {
+        this.alert.success(`Reset link sent to ${email} (if exists)`);
+        this.showForgotPassword = false;
+      },
+      error: () => this.alert.error("Failed to send reset email.")
+    });
   }
 
+  toggleForgotPassword() {
+    this.showForgotPassword = !this.showForgotPassword;
+  }
 }
