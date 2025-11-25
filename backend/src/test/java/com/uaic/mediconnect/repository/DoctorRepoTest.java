@@ -26,7 +26,7 @@ public class DoctorRepoTest {
 
     @BeforeEach
     void setUp() {
-        doctorUser = new User("Last", "First", "pass", "0711", "doc@test.com", Role.DOCTOR);
+        doctorUser = new User("Last", "First", "Pass233!", "0703222222", "doc@test.com", Role.DOCTOR);
         entityManager.persist(doctorUser);
 
         department = new Department();

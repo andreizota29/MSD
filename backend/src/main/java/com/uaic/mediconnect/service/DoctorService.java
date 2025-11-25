@@ -116,7 +116,9 @@ public class DoctorService {
         Doctor doctor = doctorRepo.findById(doctorId)
                 .orElseThrow(() -> new RuntimeException("Doctor not found"));
 
-        doctor.getServices().clear();
+        if (doctor.getServices() != null) {
+            doctor.getServices().clear();
+        }
         doctorRepo.save(doctor);
 
         List<Appointment> appointments = appointmentService.findByDoctor(doctor);

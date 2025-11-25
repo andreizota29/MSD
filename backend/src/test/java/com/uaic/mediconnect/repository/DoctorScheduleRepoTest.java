@@ -26,7 +26,7 @@ public class DoctorScheduleRepoTest {
 
     @Test
     void testFindAvailableSlots(){
-        User user = new User("Doc", "Time", "pass", "000", "time@doc.com", Role.DOCTOR);
+        User user = new User("Doc", "Time", "Parola123@", "0733272222", "time@doc.com", Role.DOCTOR);
         entityManager.persist(user);
 
         Doctor doctor = new Doctor();

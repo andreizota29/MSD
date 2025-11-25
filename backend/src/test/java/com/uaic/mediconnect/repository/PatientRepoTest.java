@@ -27,7 +27,7 @@ public class PatientRepoTest {
 
     @BeforeEach
     void setUp() {
-        patientUser = new User("Pat", "Ient", "pass", "0722", "patient@test.com", Role.PATIENT);
+        patientUser = new User("Pat", "Ient", "pass", "0733222662", "patient@test.com", Role.PATIENT);
         patientUser.setProfileCompleted(true);
         entityManager.persist(patientUser);
         entityManager.flush();

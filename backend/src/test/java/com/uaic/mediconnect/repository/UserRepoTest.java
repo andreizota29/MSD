@@ -31,6 +31,7 @@ public class UserRepoTest {
         baseUser = new User();
         baseUser.setEmail("base@test.com");
         baseUser.setPassword("Parola123!");
+        baseUser.setPhone("0733255222");
         baseUser.setRole(Role.PATIENT);
         baseUser.setFirstName("Base");
         baseUser.setLastName("User");
@@ -45,6 +46,7 @@ public class UserRepoTest {
         User newUser = new User();
         newUser.setEmail("new@test.com");
         newUser.setPassword("Password123!");
+        newUser.setPhone("0733222222");
         newUser.setRole(Role.DOCTOR);
         newUser.setFirstName("New");
         newUser.setLastName("User");

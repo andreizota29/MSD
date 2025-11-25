@@ -7,6 +7,7 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
@@ -42,7 +43,7 @@ public class Doctor {
             joinColumns = @JoinColumn(name = "doctor_id"),
             inverseJoinColumns = @JoinColumn(name = "service_id")
     )
-    private List<ClinicService> services;
+    private List<ClinicService> services = new ArrayList<>();
 
     @Enumerated(EnumType.STRING)
     @JsonProperty("timetableTemplate")
