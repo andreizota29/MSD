@@ -34,20 +34,6 @@ public class DoctorController {
     @Autowired
     private AppointmentService appointmentService;
 
-//    @GetMapping("/appointments")
-//    public ResponseEntity<?> getMyAppointments(HttpServletRequest request){
-//        var userOpt = authHelperService.getDoctorUserFromRequest(request);
-//        if(userOpt.isEmpty()){
-//            return ResponseEntity.status(401).body("Unauthorized");
-//        }
-//        var doctorOpt = doctorService.findByUser(userOpt.get());
-//        if(doctorOpt.isEmpty()){
-//            return ResponseEntity.badRequest().body("Doctor not found");
-//        }
-//        List<Appointment> appointments = appointmentService.findByDoctor(doctorOpt.get());
-//        return ResponseEntity.ok(appointments);
-//    }
-
     private Optional<Doctor> getAuthenticatedDoctor(HttpServletRequest request) {
         return authHelperService.getDoctorUserFromRequest(request)
                 .flatMap(doctorService::findByUser);
